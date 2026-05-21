@@ -14641,18 +14641,29 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         const hpFontSize = Math.max(fontSize + 5, Math.round(fontSize * 1.4));
         const statusFontSize = fontSize;
         let bubbleHeight = speechLines.length * lineHeight + paddingY * 2;
+        let npcStatusLines = [];
         if (isNpcHpStatusBubble) {
           const hpLine = String(rawSpeechLines[0] || "").trim();
           const statusLine = String(rawSpeechLines[1] || "").trim();
-          speechLines = [hpLine, statusLine || ""];
+          npcStatusLines = wrapText(ctx, statusLine || "", wrapWidth);
+          if (!npcStatusLines.length) npcStatusLines = [""];
+          speechLines = [hpLine, ...npcStatusLines];
           const previousFont = ctx.font;
           ctx.font = `700 ${hpFontSize}px ${fontFamily}`;
           const hpWidth = ctx.measureText(hpLine).width;
           ctx.font = `${fontWeight} ${statusFontSize}px ${fontFamily}`;
-          const statusWidth = ctx.measureText(statusLine || "").width;
+          const statusWidth = npcStatusLines.reduce((max, line) => {
+            const width = ctx.measureText(line || "").width;
+            return Math.max(max, width);
+          }, 0);
           ctx.font = previousFont;
           bubbleTextWidth = Math.max(hpWidth, statusWidth);
-          bubbleHeight = Math.round(hpFontSize * 1.05 + statusFontSize * 1.15 + paddingY * 2 + 4);
+          bubbleHeight = Math.round(
+            hpFontSize * 1.05 +
+            npcStatusLines.length * (statusFontSize * 1.05) +
+            paddingY * 2 +
+            6,
+          );
         }
         const bubbleWidth = bubbleTextWidth + paddingX * 2;
         const bubbleX = drawX - bubbleWidth / 2;
@@ -14740,15 +14751,17 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ctx.shadowOffsetY = 1;
         if (isNpcHpStatusBubble) {
           const hpLine = speechLines[0] || "";
-          const statusLine = speechLines[1] || "";
           const hpLineY = bubbleY + paddingY + Math.round(hpFontSize * 0.55);
-          const statusLineY = bubbleY + bubbleHeight - paddingY - Math.round(statusFontSize * 0.45);
+          const statusStartY = hpLineY + Math.round(statusFontSize * 0.9);
           ctx.font = `700 ${hpFontSize}px ${fontFamily}`;
           ctx.strokeText(hpLine, drawX, hpLineY);
           ctx.fillText(hpLine, drawX, hpLineY);
           ctx.font = `${fontWeight} ${statusFontSize}px ${fontFamily}`;
-          ctx.strokeText(statusLine, drawX, statusLineY);
-          ctx.fillText(statusLine, drawX, statusLineY);
+          npcStatusLines.forEach((line, index) => {
+            const lineY = statusStartY + index * Math.round(statusFontSize * 1.05);
+            ctx.strokeText(line, drawX, lineY);
+            ctx.fillText(line, drawX, lineY);
+          });
           ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
         } else {
           speechLines.forEach((line, index) => {

@@ -3386,7 +3386,7 @@ const PASTOR_POWERUP_DEFS = {
       const barsText = bars === 6 ? "your entire Prayer Meter" : `${bars} bar${bars !== 1 ? "s" : ""} of your Prayer Meter`;
       return `+${bars} Prayer Meter`;
     },
-    iconSrc: "assets/sprites/items/icons/Light.png",
+    iconSrc: "assets/sprites/items/icons/Fire.png",
   },
   hp: {
     key: "hp",

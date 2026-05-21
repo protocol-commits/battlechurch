@@ -70,13 +70,17 @@
     linesByTier: {
       full: [
         () => `Excited`,
-        () => `Doing fine`,
         () => `Feeling strong`,
+        () => `Thank you`,
+        () => `This helps so much`,
+        () => `You're a blessing`,
       ],
       high: [
         () => `Doing fine`,
         () => `Feeling better`,
         () => `Still strong`,
+        () => `This is helping`,
+        () => `Thanks`,
       ],
       mid: [
         () => `Holding on`,
@@ -84,13 +88,13 @@
         () => `Still trying`,
       ],
       low: [
-        () => `This hurts`,
-        () => `Still struggling`,
-        () => `Need help`,
+        () => `I'm hurting`,
+        () => `I'm struggling`,
+        () => `I need help`,
       ],
       critical: [
-        () => `Very weak`,
-        () => `Losing hope`,
+        () => `I'm wery weak`,
+        () => `I'm losing hope`,
         () => `Please help`,
       ],
     },

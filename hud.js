@@ -22,6 +22,7 @@
     grace: "assets/sprites/items/icons/I62_Gem_L.png",
     enemies: "assets/sprites/items/Weapons/W01_Blade.png",
     damageDealt: "assets/sprites/items/icons/A33_Mirror_Shield.png",
+    maxChain: "assets/sprites/items/icons/I36_Hammer.png",
   };
   const scoreboardIcons = {};
   Object.entries(scoreboardIconSources).forEach(([key, src]) => {
@@ -807,13 +808,12 @@
       ctx.strokeText(damageDealtText, x, rowY);
       ctx.fillText(damageDealtText, x, rowY);
       x += ctx.measureText(damageDealtText).width + 14;
-      const comboLabel = (typeof GameText !== 'undefined' && GameText.hud?.maxChain) || "Max Chain:";
       const comboValue = Number.isFinite(maxChainThisTown) ? Math.max(0, Math.round(maxChainThisTown)) : 0;
       const comboText = formatNumber(comboValue);
-      ctx.fillStyle = PALETTE.muted;
-      ctx.strokeText(comboLabel, x, rowY);
-      ctx.fillText(comboLabel, x, rowY);
-      x += ctx.measureText(comboLabel).width + 6;
+      if (scoreboardIcons.maxChain && scoreboardIcons.maxChain.complete) {
+        ctx.drawImage(scoreboardIcons.maxChain, x, rowY - iconSize / 2, iconSize, iconSize);
+        x += iconSize + gap;
+      }
       ctx.fillStyle = PALETTE.softWhite;
       ctx.strokeText(comboText, x, rowY);
       ctx.fillText(comboText, x, rowY);
@@ -887,10 +887,38 @@
           const itemWidth = (entry.icon && entry.icon.complete ? iconSize + gap : 0) + levelTextWidth + textPadding;
           if (chipX + itemWidth > chipMaxX) return;
           if (entry.icon && entry.icon.complete) {
+            // Subtle readability treatment: warm glow + dark ring, no hard plate box.
+            ctx.save();
+            const iconCx = chipX + iconSize / 2;
+            const iconCy = playerRowY - 5;
+            ctx.globalAlpha = 0.42;
+            ctx.fillStyle = "rgba(221,166,119,0.90)";
+            ctx.shadowColor = "rgba(221,166,119,0.95)";
+            ctx.shadowBlur = 6;
+            ctx.beginPath();
+            ctx.arc(iconCx, iconCy, iconSize * 0.52, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.globalAlpha = 1;
+            ctx.strokeStyle = "rgba(0,0,0,0.84)";
+            ctx.lineWidth = 1.4;
+            ctx.beginPath();
+            ctx.arc(iconCx, iconCy, iconSize * 0.52, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
             ctx.drawImage(entry.icon, chipX, playerRowY - iconSize / 2 - 5, iconSize, iconSize);
             chipX += iconSize + gap;
           }
-          ctx.fillText(levelText, chipX, playerRowY);
+          drawOutlinedText(
+            ctx,
+            levelText,
+            chipX,
+            playerRowY,
+            hudFont(HUD_FONTS.chip, "600"),
+            "left",
+            PALETTE.softWhite,
+            { strokeColor: "rgba(0,0,0,0.96)", strokeWidth: 2.25 },
+          );
           chipX += levelTextWidth + itemGap;
         });
       }
@@ -1078,6 +1106,80 @@
         "left",
         PALETTE.softWhite,
       );
+      const congregationLabelWidth = ctx.measureText(`${congregationLabel}: ${congregationTotal}`).width || 0;
+      const churchPowerupOptions =
+        typeof window !== 'undefined' && window.ChurchPowerups?.getOptions
+          ? window.ChurchPowerups.getOptions()
+          : [];
+      const churchPowerupOrder = ['spreadGun', 'halo', 'spear', 'sentry'];
+      const churchPowerupLevelsByKey = new Map();
+      if (Array.isArray(churchPowerupOptions)) {
+        churchPowerupOptions.forEach((option) => {
+          if (!option || !option.key) return;
+          churchPowerupLevelsByKey.set(option.key, Math.max(0, Math.floor(Number(option.level) || 0)));
+        });
+      }
+      const churchUpgradeEntries = churchPowerupOrder
+        .map((key) => ({
+          key,
+          level: churchPowerupLevelsByKey.get(key) || 0,
+          icon:
+            assets?.churchPowerups?.[key]?.iconImage ||
+            scoreboardIcons.congregation ||
+            null,
+        }))
+        .filter((entry) => entry.level > 0);
+      if (churchUpgradeEntries.length) {
+        const iconSize = 14;
+        const gap = 4;
+        const itemGap = 10;
+        const textPadding = 2;
+        ctx.font = hudFont(HUD_FONTS.chip, "600");
+        let chipX = x + congregationLabelWidth + 12;
+        const chipMaxX = x + width;
+        const chipY = panelY + 14;
+        churchUpgradeEntries.forEach((entry) => {
+          const levelText = `${entry.level}`;
+          const levelTextWidth = ctx.measureText(levelText).width || 0;
+          const itemWidth =
+            (entry.icon && entry.icon.complete ? iconSize + gap : 0) + levelTextWidth + textPadding;
+          if (chipX + itemWidth > chipMaxX) return;
+          if (entry.icon && entry.icon.complete) {
+            // Subtle readability treatment: warm glow + dark ring, no hard plate box.
+            ctx.save();
+            const iconCx = chipX + iconSize / 2;
+            const iconCy = chipY - 5;
+            ctx.globalAlpha = 0.42;
+            ctx.fillStyle = "rgba(221,166,119,0.90)";
+            ctx.shadowColor = "rgba(221,166,119,0.95)";
+            ctx.shadowBlur = 6;
+            ctx.beginPath();
+            ctx.arc(iconCx, iconCy, iconSize * 0.52, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.globalAlpha = 1;
+            ctx.strokeStyle = "rgba(0,0,0,0.84)";
+            ctx.lineWidth = 1.4;
+            ctx.beginPath();
+            ctx.arc(iconCx, iconCy, iconSize * 0.52, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+            ctx.drawImage(entry.icon, chipX, chipY - iconSize / 2 - 5, iconSize, iconSize);
+            chipX += iconSize + gap;
+          }
+          drawOutlinedText(
+            ctx,
+            levelText,
+            chipX,
+            chipY,
+            hudFont(HUD_FONTS.chip, "600"),
+            "left",
+            PALETTE.softWhite,
+            { strokeColor: "rgba(0,0,0,0.96)", strokeWidth: 2.25 },
+          );
+          chipX += levelTextWidth + itemGap;
+        });
+      }
       ctx.restore();
 
       const rows = [];
@@ -1255,51 +1357,6 @@
         window.__comboFeedFixedX = x + width;
         // Keep combo callout directly under the district progress meter.
         window.__comboFeedFixedY = panelY + 26 + 18 + 17;
-      }
-      const districtLabelWidth = ctx.measureText(districtLabelText).width || 0;
-      const churchPowerupOptions =
-        typeof window !== 'undefined' && window.ChurchPowerups?.getOptions
-          ? window.ChurchPowerups.getOptions()
-          : [];
-      const churchPowerupOrder = ['spreadGun', 'halo', 'spear', 'sentry'];
-      const churchPowerupLevelsByKey = new Map();
-      if (Array.isArray(churchPowerupOptions)) {
-        churchPowerupOptions.forEach((option) => {
-          if (!option || !option.key) return;
-          churchPowerupLevelsByKey.set(option.key, Math.max(0, Math.floor(Number(option.level) || 0)));
-        });
-      }
-      const churchUpgradeEntries = churchPowerupOrder
-        .map((key) => ({
-          key,
-          level: churchPowerupLevelsByKey.get(key) || 0,
-          icon:
-            assets?.churchPowerups?.[key]?.iconImage ||
-            scoreboardIcons.congregation ||
-            null,
-        }))
-        .filter((entry) => entry.level > 0);
-      if (churchUpgradeEntries.length) {
-        const iconSize = 14;
-        const gap = 4;
-        const itemGap = 10;
-        const textPadding = 2;
-        ctx.font = hudFont(HUD_FONTS.chip, "600");
-        let chipX = x + districtLabelWidth + 12;
-        const chipMaxX = x + width;
-        churchUpgradeEntries.forEach((entry) => {
-          const levelText = `${entry.level}`;
-          const levelTextWidth = ctx.measureText(levelText).width || 0;
-          const itemWidth =
-            (entry.icon && entry.icon.complete ? iconSize + gap : 0) + levelTextWidth + textPadding;
-          if (chipX + itemWidth > chipMaxX) return;
-          if (entry.icon && entry.icon.complete) {
-            ctx.drawImage(entry.icon, chipX, districtRowY - iconSize / 2 - 5, iconSize, iconSize);
-            chipX += iconSize + gap;
-          }
-          ctx.fillText(levelText, chipX, districtRowY);
-          chipX += levelTextWidth + itemGap;
-        });
       }
       ctx.restore();
 
