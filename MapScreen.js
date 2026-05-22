@@ -2037,10 +2037,27 @@
     const line2Size = Math.round(Math.max(14, mapHeadingSubtitleType.size) * scale);
     const topY = Math.round(38 * scale);
     const lineGap = Math.round(10 * scale);
+    const titleLineGap = Math.round(line1Size * 1.08);
+    const titleMaxWidth = Math.max(280, Math.round(canvas.width * 0.64));
 
-    const line1 = cityName
-      ? `${cityName} is overrun with spiritual darkness.`
-      : "Your hometown is overrun with spiritual darkness.";
+    const cityToken = cityName || "YOUR CITY";
+    const line1 = `Spiritual darkness is destroying lives and families in your hometown of ${cityToken}.`;
+    const wrapText = (text, maxWidth) => {
+      const words = String(text || "").split(/\s+/).filter(Boolean);
+      const lines = [];
+      let current = "";
+      for (const word of words) {
+        const candidate = current ? `${current} ${word}` : word;
+        if (!current || (ctx.measureText(candidate).width <= maxWidth)) {
+          current = candidate;
+        } else {
+          lines.push(current);
+          current = word;
+        }
+      }
+      if (current) lines.push(current);
+      return lines.length ? lines : [""];
+    };
 
     ctx.save();
     ctx.textAlign = "center";
@@ -2054,17 +2071,21 @@
     ctx.font = `${mapHeadingTitleType.weight} ${line1Size}px ${UI_FONT_FAMILY}`;
     ctx.fillStyle = MAP_HELLFIRE_TEXT.title;
     ctx.lineWidth = Math.max(2, Math.round(line1Size * 0.15));
-    ctx.strokeText(line1, cx, topY);
-    ctx.fillText(line1, cx, topY);
-    pushTypographyDebugLabel("h3", cx, topY);
+    const titleLines = wrapText(line1, titleMaxWidth);
+    titleLines.forEach((line, index) => {
+      const y = topY + index * titleLineGap;
+      ctx.strokeText(line, cx, y);
+      ctx.fillText(line, cx, y);
+      pushTypographyDebugLabel("h3", cx, y);
+    });
 
-    const playerName = getActiveSave()?.playerName?.trim() || "Pastor";
     ctx.font = `${mapHeadingSubtitleType.weight} ${line2Size}px ${UI_FONT_FAMILY}`;
     ctx.fillStyle = MAP_HELLFIRE_TEXT.dim;
     ctx.lineWidth = Math.max(2, Math.round(line2Size * 0.15));
-    ctx.strokeText(`Pastor ${playerName}, you have been called to liberate it.`, cx, topY + line1Size + lineGap);
-    ctx.fillText(`Pastor ${playerName}, you have been called to liberate it.`, cx, topY + line1Size + lineGap);
-    pushTypographyDebugLabel("subhead", cx, topY + line1Size + lineGap);
+    const subtitleY = topY + titleLines.length * titleLineGap + lineGap;
+    ctx.strokeText("You've been called to liberate it.", cx, subtitleY);
+    ctx.fillText("You've been called to liberate it.", cx, subtitleY);
+    pushTypographyDebugLabel("subhead", cx, subtitleY);
 
     ctx.restore();
   }

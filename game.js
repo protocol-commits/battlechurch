@@ -520,6 +520,10 @@ const briefTeaserState = {
   introTextQueued: false,
   spawnTimers: [],
 };
+const briefTeaserDialogueState = {
+  timerSec: 0,
+  lineIndex: 0,
+};
 
 function clearBriefTeaserSpawnTimers() {
   if (!Array.isArray(briefTeaserState.spawnTimers)) return;
@@ -685,6 +689,7 @@ const CONGREGATION_DIALOGUE_LINES_BY_CAMPAIGN =
 const CONGREGATION_WAVE_INTRO_DIALOGUE = CONGREGATION_DIALOGUE_DATA.waveIntro || {};
 const CONGREGATION_WAVE_END_DIALOGUE = CONGREGATION_DIALOGUE_DATA.waveEnd || {};
 const CONGREGATION_RED_FAITH_DIALOGUE = CONGREGATION_DIALOGUE_DATA.redFaith || {};
+const CONGREGATION_TEASER_DIALOGUE = CONGREGATION_DIALOGUE_DATA.teaser || {};
 
 function getCongregationIntroLinesForCampaign(campaignIdRaw) {
   const campaignId = String(campaignIdRaw || "").toLowerCase();
@@ -698,6 +703,70 @@ function getCongregationIntroLinesForCampaign(campaignIdRaw) {
     return CONGREGATION_DIALOGUE_LINES_BY_CAMPAIGN.p1;
   }
   return Array.isArray(CONGREGATION_DIALOGUE_LINES) ? CONGREGATION_DIALOGUE_LINES : [];
+}
+
+function getActiveSpeechBubbleCountForEntities(entities) {
+  if (!Array.isArray(entities) || !entities.length) return 0;
+  const set = new Set(entities.filter(Boolean));
+  if (!set.size) return 0;
+  return floatingTexts.filter(
+    (ft) =>
+      ft &&
+      ft.speechBubble &&
+      Number(ft.life || 0) > 0 &&
+      set.has(ft.entity),
+  ).length;
+}
+
+function updateBriefTeaserNpcDialogue(dt, levelStatus) {
+  const stage = levelStatus?.stage;
+  const teaserStageActive = stage === "briefingTeaser" || stage === "congregationToTeaser";
+  if (!teaserStageActive) {
+    briefTeaserDialogueState.timerSec = 0;
+    return;
+  }
+  const teaserLines = Array.isArray(CONGREGATION_TEASER_DIALOGUE.lines)
+    ? CONGREGATION_TEASER_DIALOGUE.lines
+    : [];
+  const lines = teaserLines
+    .filter((line) => typeof line === "string" && line.trim());
+  if (!lines.length || !Array.isArray(npcs) || !npcs.length) return;
+  const cfg = CONGREGATION_TEASER_DIALOGUE || {};
+  const maxConcurrent = Math.max(1, Math.floor(Number(cfg.maxConcurrentSpeakers) || 2));
+  const minIntervalSec = Math.max(0.6, Number(cfg.minIntervalSec) || 2.8);
+  const maxIntervalSec = Math.max(minIntervalSec, Number(cfg.maxIntervalSec) || 4.2);
+  const bubbleLifeSec = Math.max(1.2, Number(cfg.bubbleLifeSec) || 3.9);
+
+  briefTeaserDialogueState.timerSec -= Math.max(0, Number(dt) || 0);
+  if (briefTeaserDialogueState.timerSec > 0) return;
+
+  const now = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+  const eligible = npcs.filter(
+    (npc) =>
+      npc &&
+      !npc.dead &&
+      !npc.departed &&
+      Number.isFinite(npc.x) &&
+      Number.isFinite(npc.y) &&
+      (!Number.isFinite(npc.dialogueCooldownUntil) || now >= npc.dialogueCooldownUntil),
+  );
+  if (!eligible.length) {
+    briefTeaserDialogueState.timerSec = minIntervalSec;
+    return;
+  }
+  const activeBubbleCount = getActiveSpeechBubbleCountForEntities(npcs);
+  if (activeBubbleCount >= maxConcurrent) {
+    briefTeaserDialogueState.timerSec = minIntervalSec + Math.random() * Math.max(0, maxIntervalSec - minIntervalSec);
+    return;
+  }
+  const npc = eligible[Math.floor(Math.random() * eligible.length)];
+  const line = lines[briefTeaserDialogueState.lineIndex % lines.length];
+  briefTeaserDialogueState.lineIndex = (briefTeaserDialogueState.lineIndex + 1) % lines.length;
+  if (line) {
+    npcCheer(npc, line, UI_COLOR.speechBubbleText, { life: bubbleLifeSec });
+    npc.dialogueCooldownUntil = now + CONGREGATION_DIALOGUE_COOLDOWN_MS;
+  }
+  briefTeaserDialogueState.timerSec = minIntervalSec + Math.random() * Math.max(0, maxIntervalSec - minIntervalSec);
 }
 const NPC_PROCESSION_SPEED_MULTIPLIER = 3.5;
 let congregationSize = INITIAL_CONGREGATION_SIZE;
@@ -23189,28 +23258,59 @@ function updateCongregationStage(dt, levelStatus) {
   congregationWelcomeTimer -= dt;
   if (congregationWelcomeTimer <= 0 && congregationGreetingCount < welcomeHintLimit && activeWelcomeLines.length && congregationMembers.length) {
     const now = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
-    const available = congregationMembers.filter(
-      (m) => m && (!Number.isFinite(m.dialogueCooldownUntil) || now >= m.dialogueCooldownUntil) && !m.dialogueBubble
-    );
-    if (available.length) {
-      const member = available[Math.floor(Math.random() * available.length)];
-      const line = activeWelcomeLines[congregationGreetingCount % activeWelcomeLines.length];
-      if (member.dialogueBubble) {
-        member.dialogueBubble.life = 0;
+    // Clear stale refs so expired bubbles don't block teaser eligibility forever.
+    congregationMembers.forEach((member) => {
+      if (!member?.dialogueBubble) return;
+      const bubbleLife = Number(member.dialogueBubble.life || 0);
+      if (!(bubbleLife > 0)) {
         member.dialogueBubble = null;
       }
-      const bubble = addFloatingTextAt(
-        member.x,
-        member.y - member.radius - 20,
-        line,
-        UI_COLOR.speechBubbleText,
-        { speechBubble: true, vy: 0, life: 3.5, fadeDelay: 2.5, entity: member, offsetY: -member.radius - 20, bubbleTheme: "npc" }
+    });
+    const maxConcurrentSpeakers = Math.max(
+      1,
+      Math.floor(Number(CONGREGATION_TEASER_DIALOGUE.maxConcurrentSpeakers) || 2),
+    );
+    const activeSpeakers = congregationMembers.filter(
+      (m) => m && m.dialogueBubble && Number((m.dialogueBubble.life || 0)) > 0,
+    ).length;
+    if (activeSpeakers >= maxConcurrentSpeakers) {
+      const minIntervalSec = Math.max(0.6, Number(CONGREGATION_TEASER_DIALOGUE.minIntervalSec) || 2.8);
+      const maxIntervalSec = Math.max(minIntervalSec, Number(CONGREGATION_TEASER_DIALOGUE.maxIntervalSec) || 4.2);
+      congregationWelcomeTimer = minIntervalSec + Math.random() * Math.max(0, maxIntervalSec - minIntervalSec);
+    } else {
+      const available = congregationMembers.filter(
+        (m) => m && (!Number.isFinite(m.dialogueCooldownUntil) || now >= m.dialogueCooldownUntil) && !m.dialogueBubble
       );
-      member.dialogueBubble = bubble || null;
-      member.dialogueCooldownUntil = now + CONGREGATION_DIALOGUE_COOLDOWN_MS;
-      congregationGreetingCount += 1;
+      if (available.length) {
+        const member = available[Math.floor(Math.random() * available.length)];
+        const line = activeWelcomeLines[congregationGreetingCount % activeWelcomeLines.length];
+        if (member.dialogueBubble) {
+          member.dialogueBubble.life = 0;
+          member.dialogueBubble = null;
+        }
+        const bubble = addFloatingTextAt(
+          member.x,
+          member.y - member.radius - 20,
+          line,
+          UI_COLOR.speechBubbleText,
+          {
+            speechBubble: true,
+            vy: 0,
+            life: Math.max(1.2, Number(CONGREGATION_TEASER_DIALOGUE.bubbleLifeSec) || 3.9),
+            fadeDelay: Math.max(0.8, Number(CONGREGATION_TEASER_DIALOGUE.bubbleFadeDelaySec) || 2.8),
+            entity: member,
+            offsetY: -member.radius - 20,
+            bubbleTheme: "npc",
+          }
+        );
+        member.dialogueBubble = bubble || null;
+        member.dialogueCooldownUntil = now + CONGREGATION_DIALOGUE_COOLDOWN_MS;
+        congregationGreetingCount += 1;
+      }
     }
-    congregationWelcomeTimer = 1.5 + Math.random() * 0.5;
+    const minIntervalSec = Math.max(0.6, Number(CONGREGATION_TEASER_DIALOGUE.minIntervalSec) || 2.8);
+    const maxIntervalSec = Math.max(minIntervalSec, Number(CONGREGATION_TEASER_DIALOGUE.maxIntervalSec) || 4.2);
+    congregationWelcomeTimer = minIntervalSec + Math.random() * Math.max(0, maxIntervalSec - minIntervalSec);
   }
   updateCongregationMembers(dt);
   resolveCongregationMemberCollisions();
@@ -29763,6 +29863,15 @@ function updateGame(dt) {
     updateGraceSpendFlyEffects(dt);
   }
 
+  // Run teaser chatter before announcement early-return path so speech still
+  // appears while teaser overlays are showing.
+  if (
+    levelStatus?.stage === "briefingTeaser" ||
+    levelStatus?.stage === "congregationToTeaser"
+  ) {
+    updateBriefTeaserNpcDialogue(dt, levelStatus);
+  }
+
   if (handleLevelAnnouncements()) {
     return;
   }
@@ -29801,6 +29910,7 @@ function updateGame(dt) {
       } catch (error) {}
       scheduleBriefTeaserSpawns();
     }
+    updateBriefTeaserNpcDialogue(dt, levelStatus);
     const teaserSkipPressed =
       keysJustPressed.has(" ") ||
       keysJustPressed.has("enter") ||

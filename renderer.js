@@ -13569,6 +13569,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         (Number.isFinite(activeBoss?.deathPostDelay) && activeBoss.deathPostDelay > 0)
       );
     const hidePlayerForBriefTeaser = levelStatus?.stage === "briefingTeaser";
+    if (!graceRushBlackout && !(graceRushHardBlackoutTimer > 0)) {
+      try { drawFloatingTextsOverlay(ctx); } catch (e) {}
+      try { drawEnemyHpLabelsOverlay(ctx); } catch (e) {}
+    }
     if (player && bossDeathExplosionActive && !hidePlayerForBriefTeaser) {
       // During boss death explosions, keep the player behind the explosion stack.
       player.draw();
@@ -13599,10 +13603,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           player.animator.draw(ctx, _ghostTarget.x, _ghostTarget.y, { flipX: player.facing === "left" });
         }
         ctx.restore();
-      }
-      if (!graceRushBlackout && !(graceRushHardBlackoutTimer > 0)) {
-        try { drawFloatingTextsOverlay(ctx); } catch (e) {}
-        try { drawEnemyHpLabelsOverlay(ctx); } catch (e) {}
       }
       if (!bossDeathExplosionActive) {
         player.draw();
