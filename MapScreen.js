@@ -84,6 +84,29 @@
     finalTrailDelayMaxMs: 220,
     finalTrailVolume: 0.56,
   });
+  const MAP_HELLMOUTH_INVASION = Object.freeze({
+    maxActive: 40,                  // Max demon march icons visible at once.
+    clusterMin: 6,                 // Smallest number of demons in one burst from the hellmouth.
+    clusterMax: 12,                 // Largest number of demons in one burst from the hellmouth.
+    clusterGapMinMs: 160,          // Fastest delay between demons inside the same burst.
+    clusterGapMaxMs: 320,          // Slowest delay between demons inside the same burst.
+    waveGapMinMs: 900,             // Fastest delay before the next burst starts.
+    waveGapMaxMs: 1700,            // Slowest delay before the next burst starts.
+    speedMin: 32,                  // Slowest travel speed for a demon icon (pixels/second).
+    speedMax: 50,                 // Fastest travel speed for a demon icon (pixels/second).
+    arcMinPx: 44,                  // Minimum arc bend amount for curved routes.
+    arcMaxPx: 108,                 // Maximum arc bend amount for curved routes.
+    fadeOutDistancePx: 50,         // Start fading out when this close to the target district.
+    spawnScaleInMs: 230,           // Time for icon to scale from 0 to full size at spawn.
+    scatterRadiusMinPx: 12,        // Minimum initial radial scatter distance from hellmouth.
+    scatterRadiusMaxPx: 34,        // Maximum initial radial scatter distance from hellmouth.
+    scatterDurationMs: 190,        // How long the initial scatter motion lasts.
+    weightP1Uncleared: 4.5,        // Target weight for districts not yet cleared on P1 (higher = picked more).
+    weightP2FrontUnfortified: 1.4, // Target weight for P2-eligible pressure when the front is not fully fortified.
+    weightFallback: 0.4,           // Low fallback target weight for other non-fortified districts.
+    alpha: 0.96,                   // Overall opacity multiplier for all demon march icons.
+    iconScale: 4.75,               // Base visual size of marching demon icons.
+  });
 
   function readMapScreenRenderStyleNumber(key, fallback) {
     const root = (() => {
@@ -235,6 +258,12 @@
       demonHoldMs: 3500,
       toDemonStepsMs: [],
       toNormalStepsMs: [],
+    },
+    hellmouthInvasion: {
+      entities: [],                // Active marching demon icons currently being simulated.
+      nextSpawnAtMs: 0,            // Absolute timestamp for when the next spawn is allowed.
+      clusterRemaining: 0,         // How many demons are left to emit in the current burst.
+      initialized: false,          // One-time init flag for spawn timers.
     },
   };
   const DEFAULT_SAVE_ID = "main";
@@ -791,6 +820,246 @@
     ctx.fillStyle = "#f8f0df";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.restore();
+  }
+
+  function getHellmouthInvasionClipPool() {
+    return [
+      { kind: "imp", clips: getMiniImpClips() },
+      { kind: "clawed", clips: getMiniClawedDemonClips() },
+      { kind: "firekeeper", clips: getMiniDemonFireKeeperClips() },
+      { kind: "lord", clips: getMiniDemonLordClips() },
+    ].filter((entry) => entry && entry.clips);
+  }
+
+  function isDistrictFullyFortified(districtId, progress) {
+    if (!districtId || !progress) return false;
+    const entry = progress.districts?.[districtId];
+    return Boolean(entry?.p1?.completed && entry?.p2?.completed && entry?.p3?.completed);
+  }
+
+  function isFrontFullyFortified(frontId, progress, mapData) {
+    if (!frontId || !progress || !mapData?.districts?.length) return false;
+    const frontDistricts = mapData.districts.filter(
+      (district) => district && district.type !== "capital" && district.frontId === frontId,
+    );
+    if (!frontDistricts.length) return false;
+    return frontDistricts.every((district) => isDistrictFullyFortified(district.id, progress));
+  }
+
+  function pickHellmouthInvasionTarget(progress) {
+    const mapData = window.BattlechurchMapData;
+    if (!progress || !mapData?.districts?.length) return null;
+    const cfg = MAP_HELLMOUTH_INVASION;
+    const candidates = [];
+    let totalWeight = 0;
+    for (const district of mapData.districts) {
+      if (!district || !district.id || district.type === "capital") continue;
+      if (isDistrictFullyFortified(district.id, progress)) continue;
+      const entry = progress.districts?.[district.id] || {};
+      const p1Done = entry?.p1?.completed === true;
+      const p2Done = entry?.p2?.completed === true;
+      const frontUnfortified = !isFrontFullyFortified(district.frontId, progress, mapData);
+      let weight = cfg.weightFallback;
+      if (!p1Done) {
+        weight = cfg.weightP1Uncleared;
+      } else if (!p2Done && frontUnfortified) {
+        weight = cfg.weightP2FrontUnfortified;
+      }
+      if (weight <= 0) continue;
+      totalWeight += weight;
+      candidates.push({ district, weight, cumulative: totalWeight });
+    }
+    if (!candidates.length || totalWeight <= 0) return null;
+    const roll = Math.random() * totalWeight;
+    for (const candidate of candidates) {
+      if (roll <= candidate.cumulative) return candidate.district;
+    }
+    return candidates[candidates.length - 1].district;
+  }
+
+  function getHellmouthOriginPoint(rect) {
+    const mapData = window.BattlechurchMapData;
+    if (!mapData?.districts?.length || !rect) return null;
+    const capital = mapData.districts.find((district) => district && district.type === "capital") || null;
+    if (!capital) return null;
+    return getDistrictPosition(capital, rect);
+  }
+
+  function createHellmouthInvasionEntity(rect, progress) {
+    const cfg = MAP_HELLMOUTH_INVASION;
+    const origin = getHellmouthOriginPoint(rect);
+    if (!origin) return null;
+    const targetDistrict = pickHellmouthInvasionTarget(progress);
+    if (!targetDistrict) return null;
+    const target = getDistrictPosition(targetDistrict, rect);
+    if (!target) return null;
+    const clipPool = getHellmouthInvasionClipPool();
+    if (!clipPool.length) return null;
+    const clipChoice = clipPool[Math.floor(Math.random() * clipPool.length)];
+    const Animator = window.Entities?.Animator || null;
+    if (!Animator || !clipChoice?.clips) return null;
+    const animator = new Animator(clipChoice.clips, 1);
+    animator.play("walk", { restart: true, loop: true });
+    const scatterRadius =
+      cfg.scatterRadiusMinPx + Math.random() * Math.max(0.1, cfg.scatterRadiusMaxPx - cfg.scatterRadiusMinPx);
+    const scatterAngle = Math.random() * Math.PI * 2;
+    const scatterX = origin.x + Math.cos(scatterAngle) * scatterRadius;
+    const scatterY = origin.y + Math.sin(scatterAngle) * scatterRadius;
+    const dx = target.x - scatterX;
+    const dy = target.y - scatterY;
+    const distance = Math.max(1, Math.hypot(dx, dy));
+    const normalX = -dy / distance;
+    const normalY = dx / distance;
+    const arcMag = cfg.arcMinPx + Math.random() * Math.max(0.1, cfg.arcMaxPx - cfg.arcMinPx);
+    const arcSign = Math.random() < 0.5 ? -1 : 1;
+    const control = {
+      x: (scatterX + target.x) * 0.5 + normalX * arcMag * arcSign,
+      y: (scatterY + target.y) * 0.5 + normalY * arcMag * arcSign,
+    };
+    const speed = cfg.speedMin + Math.random() * Math.max(0.1, cfg.speedMax - cfg.speedMin);
+    const travelDistance = Math.max(1, distance - cfg.fadeOutDistancePx);
+    const travelDuration = travelDistance / Math.max(1, speed);
+    return {
+      originX: origin.x,
+      originY: origin.y,
+      x: origin.x,
+      y: origin.y,
+      alpha: 0,
+      scale: 0,
+      progress: 0,
+      traveled: 0,
+      travelDuration,
+      scatterDuration: cfg.scatterDurationMs / 1000,
+      spawnScaleDuration: cfg.spawnScaleInMs / 1000,
+      timer: 0,
+      scatterX,
+      scatterY,
+      targetX: target.x,
+      targetY: target.y,
+      controlX: control.x,
+      controlY: control.y,
+      targetDistrictId: targetDistrict.id,
+      fadeOutDistance: cfg.fadeOutDistancePx,
+      totalDistance: distance,
+      animator,
+      animState: {
+        timer: Math.random() * 0.8,
+        hold: 0.8 + Math.random() * 0.9,
+        minHold: 0.8,
+        maxHold: 1.7,
+      },
+    };
+  }
+
+  function evaluateQuadraticPoint(t, p0x, p0y, p1x, p1y, p2x, p2y) {
+    const u = 1 - t;
+    const tt = t * t;
+    const uu = u * u;
+    return {
+      x: uu * p0x + 2 * u * t * p1x + tt * p2x,
+      y: uu * p0y + 2 * u * t * p1y + tt * p2y,
+    };
+  }
+
+  function updateHellmouthInvasion(dt) {
+    const mapRect = state.mapRect;
+    const progress = ensureProgress();
+    const invasion = state.hellmouthInvasion;
+    if (!invasion || !mapRect || !progress) return;
+    const nowMs = typeof performance !== "undefined" ? performance.now() : Date.now();
+    if (!invasion.initialized) {
+      invasion.initialized = true;
+      invasion.nextSpawnAtMs = nowMs + 600;
+      invasion.clusterRemaining = 0;
+    }
+    const dtSec = Math.max(0, Number(dt) || 0);
+    for (let i = invasion.entities.length - 1; i >= 0; i -= 1) {
+      const entity = invasion.entities[i];
+      if (!entity) {
+        invasion.entities.splice(i, 1);
+        continue;
+      }
+      entity.timer += dtSec;
+      updateAnimatorCycle(
+        entity.animator,
+        dtSec,
+        entity.animState,
+        entity.animState.minHold,
+        entity.animState.maxHold,
+      );
+      if (entity.timer < entity.scatterDuration) {
+        const scatterT = Math.max(0, Math.min(1, entity.timer / Math.max(0.01, entity.scatterDuration)));
+        entity.x = entity.originX + (entity.scatterX - entity.originX) * scatterT;
+        entity.y = entity.originY + (entity.scatterY - entity.originY) * scatterT;
+      } else {
+        entity.progress = Math.min(1, entity.progress + dtSec / Math.max(0.001, entity.travelDuration));
+        const p = evaluateQuadraticPoint(
+          entity.progress,
+          entity.scatterX,
+          entity.scatterY,
+          entity.controlX,
+          entity.controlY,
+          entity.targetX,
+          entity.targetY,
+        );
+        entity.x = p.x;
+        entity.y = p.y;
+      }
+      const spawnT = Math.max(0, Math.min(1, entity.timer / Math.max(0.01, entity.spawnScaleDuration)));
+      entity.scale = spawnT;
+      const remaining = Math.hypot(entity.targetX - entity.x, entity.targetY - entity.y);
+      const fadeT = Math.max(0, Math.min(1, remaining / Math.max(1, entity.fadeOutDistance)));
+      entity.alpha = Math.max(0, Math.min(1, fadeT));
+      if (entity.progress >= 1 || remaining <= 2 || entity.alpha <= 0.001) {
+        invasion.entities.splice(i, 1);
+      }
+    }
+    const cfg = MAP_HELLMOUTH_INVASION;
+    while (
+      invasion.entities.length < cfg.maxActive &&
+      nowMs >= invasion.nextSpawnAtMs
+    ) {
+      if (invasion.clusterRemaining <= 0) {
+        invasion.clusterRemaining =
+          Math.floor(cfg.clusterMin + Math.random() * Math.max(1, cfg.clusterMax - cfg.clusterMin + 1));
+      }
+      const entity = createHellmouthInvasionEntity(mapRect, progress);
+      if (!entity) {
+        invasion.nextSpawnAtMs = nowMs + 800;
+        break;
+      }
+      invasion.entities.push(entity);
+      invasion.clusterRemaining -= 1;
+      if (invasion.clusterRemaining > 0) {
+        invasion.nextSpawnAtMs =
+          nowMs + cfg.clusterGapMinMs + Math.random() * Math.max(1, cfg.clusterGapMaxMs - cfg.clusterGapMinMs);
+      } else {
+        invasion.nextSpawnAtMs =
+          nowMs + cfg.waveGapMinMs + Math.random() * Math.max(1, cfg.waveGapMaxMs - cfg.waveGapMinMs);
+      }
+    }
+  }
+
+  function drawHellmouthInvasion(ctx, alpha = 1) {
+    if (!ctx) return;
+    const invasion = state.hellmouthInvasion;
+    if (!invasion?.entities?.length) return;
+    const cfg = MAP_HELLMOUTH_INVASION;
+    const globalAlpha = Math.max(0, Math.min(1, alpha));
+    if (globalAlpha <= 0.001) return;
+    for (const entity of invasion.entities) {
+      if (!entity?.animator?.currentClip) continue;
+      const drawAlpha = Math.max(0, Math.min(1, entity.alpha * globalAlpha * cfg.alpha));
+      if (drawAlpha <= 0.001) continue;
+      const clip = entity.animator.currentClip;
+      const baseSize = Math.max(1, clip.frameWidth || 1, clip.frameHeight || 1);
+      const targetSize = HIT_RADIUS_BASE * cfg.iconScale;
+      entity.animator.scale = (targetSize / baseSize) * Math.max(0.001, entity.scale);
+      entity.animator.draw(ctx, entity.x, entity.y - 8, {
+        alpha: drawAlpha,
+        flipX: entity.targetX >= entity.x,
+      });
+    }
   }
 
   function getActiveMapImage(preferDemonRealm) {
@@ -2922,6 +3191,10 @@
     state.realmLightning.flashAlpha = 0;
     state.realmLightning.pendingTrailAtMs = 0;
     state.realmCycle.initialized = false;
+    state.hellmouthInvasion.entities = [];
+    state.hellmouthInvasion.nextSpawnAtMs = 0;
+    state.hellmouthInvasion.clusterRemaining = 0;
+    state.hellmouthInvasion.initialized = false;
     stopMapAmbient();
   }
 
@@ -2930,6 +3203,7 @@
     loadMapImages();
     loadDistrictExteriorImage();
     updateMapRealmLightningEffects(dt);
+    updateHellmouthInvasion(dt);
     updateArmyMarchAnimation(dt);
     handleMapInput();
     const mapData = window.BattlechurchMapData;
@@ -3041,6 +3315,12 @@
       }
     }
     rect = drawMapBackground(ctx, canvas, activeMapImage);
+    const invasionAlpha = realmState.demon
+      ? (transitionActive ? Math.max(0, Math.min(1, 1 - easedCrossfadeT)) : 1)
+      : 0;
+    if (invasionAlpha > 0.001) {
+      drawHellmouthInvasion(ctx, invasionAlpha);
+    }
     if (transitionActive) {
       const mapEmberAlpha = Math.max(0, Math.min(1, 1 - easedCrossfadeT));
       if (realmState.demon && mapEmberAlpha > 0.001) {
