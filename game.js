@@ -11468,11 +11468,13 @@ function applyWeaponPickupEffect(pickup) {
       const config = resolveWeaponPowerupConfig("spreadGun", def);
       const sgLevel = Math.min(CHURCH_POWERUP_MAX_LEVEL, churchPowerupLevels.get("spreadGun") || 1);
       const sgDuration = getChurchPowerupInstanceDuration(config.duration, sgLevel, 1);
-      if (player.spreadGunTimer > 0) {
-        player.spreadGunBonusTimer = Math.max(player.spreadGunBonusTimer || 0, sgDuration);
+      if ((player.spreadGunTimer || 0) > 0) {
+        // Preserve the currently active instance; queue the next one separately.
+        player.spreadGunBonusTimer = Math.max(0, player.spreadGunBonusTimer || 0) + sgDuration;
+      } else {
+        player.spreadGunTimer = sgDuration;
       }
-      player.spreadGunTimer = Math.max(player.spreadGunTimer, sgDuration);
-      player.spreadGunDuration = Math.max(player.spreadGunDuration, sgDuration);
+      player.spreadGunDuration = Math.max(player.spreadGunDuration || 0, sgDuration);
       player.spreadGunMaxDuration = config.duration;
       player.spreadGunLevel = Math.max(player.spreadGunLevel || 0, sgLevel);
       if (def?.tuning) player.spreadGunTuning = { ...def.tuning };
@@ -11486,13 +11488,15 @@ function applyWeaponPickupEffect(pickup) {
       const haloSecondaryDur = getChurchPowerupInstanceDuration(config.duration, haloLevel, 2);
       const hadPrimary = (player.haloTimer || 0) > 0;
       const hadSecondary = (player.haloTimerSecondary || 0) > 0;
-      if (hadPrimary && (haloSecondaryDur <= 0 || hadSecondary)) {
-        player.haloTimerBonus = Math.max(player.haloTimerBonus || 0, haloPrimaryDur);
+      if (!hadPrimary) {
+        player.haloTimer = haloPrimaryDur;
+      } else if (!hadSecondary && haloSecondaryDur > 0) {
+        player.haloTimerSecondary = haloSecondaryDur;
+      } else {
+        player.haloTimerBonus = Math.max(0, player.haloTimerBonus || 0) + haloPrimaryDur;
       }
-      player.haloTimer = Math.max(player.haloTimer, haloPrimaryDur);
-      player.haloDuration = Math.max(player.haloDuration, haloPrimaryDur);
+      player.haloDuration = Math.max(player.haloDuration || 0, haloPrimaryDur);
       player.haloMaxDuration = config.duration;
-      player.haloTimerSecondary = Math.max(player.haloTimerSecondary || 0, haloSecondaryDur);
       player.haloLevel = Math.max(player.haloLevel || 0, haloLevel);
       if (def?.tuning) {
         const t = def.tuning;
@@ -11524,13 +11528,15 @@ function applyWeaponPickupEffect(pickup) {
       const spearSecondaryDur = getChurchPowerupInstanceDuration(config.duration, spearLevel, 2);
       const hadPrimary = (player.spearTimer || 0) > 0;
       const hadSecondary = (player.spearTimerSecondary || 0) > 0;
-      if (hadPrimary && (spearSecondaryDur <= 0 || hadSecondary)) {
-        player.spearTimerBonus = Math.max(player.spearTimerBonus || 0, spearPrimaryDur);
+      if (!hadPrimary) {
+        player.spearTimer = spearPrimaryDur;
+      } else if (!hadSecondary && spearSecondaryDur > 0) {
+        player.spearTimerSecondary = spearSecondaryDur;
+      } else {
+        player.spearTimerBonus = Math.max(0, player.spearTimerBonus || 0) + spearPrimaryDur;
       }
-      player.spearTimer = Math.max(player.spearTimer, spearPrimaryDur);
-      player.spearDuration = Math.max(player.spearDuration, spearPrimaryDur);
+      player.spearDuration = Math.max(player.spearDuration || 0, spearPrimaryDur);
       player.spearMaxDuration = config.duration;
-      player.spearTimerSecondary = Math.max(player.spearTimerSecondary || 0, spearSecondaryDur);
       player.spearLevel = Math.max(player.spearLevel || 0, spearLevel);
       if (def?.tuning) {
         const t = def.tuning;
@@ -11552,13 +11558,15 @@ function applyWeaponPickupEffect(pickup) {
       const sentrySecondaryDur = getChurchPowerupInstanceDuration(config.duration, sentryLevel, 2);
       const hadPrimary = (player.sentryTimer || 0) > 0;
       const hadSecondary = (player.sentryTimerSecondary || 0) > 0;
-      if (hadPrimary && (sentrySecondaryDur <= 0 || hadSecondary)) {
-        player.sentryTimerBonus = Math.max(player.sentryTimerBonus || 0, sentryPrimaryDur);
+      if (!hadPrimary) {
+        player.sentryTimer = sentryPrimaryDur;
+      } else if (!hadSecondary && sentrySecondaryDur > 0) {
+        player.sentryTimerSecondary = sentrySecondaryDur;
+      } else {
+        player.sentryTimerBonus = Math.max(0, player.sentryTimerBonus || 0) + sentryPrimaryDur;
       }
-      player.sentryTimer = Math.max(player.sentryTimer, sentryPrimaryDur);
-      player.sentryDuration = Math.max(player.sentryDuration, sentryPrimaryDur);
+      player.sentryDuration = Math.max(player.sentryDuration || 0, sentryPrimaryDur);
       player.sentryMaxDuration = config.duration;
-      player.sentryTimerSecondary = Math.max(player.sentryTimerSecondary || 0, sentrySecondaryDur);
       player.sentryLevel = Math.max(player.sentryLevel || 0, sentryLevel);
       if (def?.tuning) {
         const t = def.tuning;

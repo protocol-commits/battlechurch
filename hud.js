@@ -286,7 +286,7 @@
       ctx.restore();
     };
 
-    const drawPillMeterRow = (x, y, width, label, ratio, color, iconImage, iconKey, capRatio) => {
+    const drawPillMeterRow = (x, y, width, label, ratio, color, iconImage, iconKey, capRatio, secondaryRatio = null, secondaryColor = null) => {
       // FONT MAP (pill rows):
       // 15px = text inside each pill meter row (player/npc powerup bars).
       const barHeight = 18;
@@ -348,6 +348,29 @@
           false,
         );
         applyMeterGloss(barX + 1, barY + 1, fillWidth, barHeight - 2);
+      }
+
+      // Secondary queued instance band (distinct color) for stacked church powerups.
+      const clampedSecondary = (secondaryRatio != null) ? Math.max(0, Math.min(1, secondaryRatio)) : null;
+      if (clampedSecondary != null && clampedSecondary > 0) {
+        const secondaryWidth = Math.max(0, Math.floor((barWidth - 2) * clampedSecondary));
+        const bandHeight = Math.max(6, Math.floor((barHeight - 2) * 0.5));
+        if (secondaryWidth > 0) {
+          ctx.save();
+          ctx.globalAlpha = 0.95;
+          ctx.fillStyle = secondaryColor || "#DDA677";
+          roundRect(
+            ctx,
+            barX + 1,
+            barY + barHeight - bandHeight - 1,
+            secondaryWidth,
+            bandHeight,
+            3,
+            true,
+            false,
+          );
+          ctx.restore();
+        }
       }
       ctx.font = hudFont(HUD_FONTS.pillText);
       ctx.fillStyle = PALETTE.softWhite;
@@ -988,6 +1011,8 @@
           label: skillNames.spreadGun || 'Spread Gun',
           ratio: player.spreadGunTimer / maxDuration,
           capRatio: (player.spreadGunDuration || 0) / maxDuration,
+          secondaryRatio: (player.spreadGunBonusTimer || 0) / maxDuration,
+          secondaryColor: "#DDA677",
           color: getIconStyleColor('player', PALETTE.ice),
           iconImage: assets?.churchPowerups?.spreadGun?.iconImage || null,
           iconKey: 'upgradeSpreadGun',
@@ -999,6 +1024,8 @@
           label: skillNames.halo || 'Halo',
           ratio: player.haloTimer / maxDuration,
           capRatio: (player.haloDuration || 0) / maxDuration,
+          secondaryRatio: (player.haloTimerSecondary || 0) / maxDuration,
+          secondaryColor: "#DDA677",
           color: getIconStyleColor('player', PALETTE.ice),
           iconImage: assets?.churchPowerups?.halo?.iconImage || null,
           iconKey: 'upgradeHalo',
@@ -1010,6 +1037,8 @@
           label: skillNames.spear || 'Spear',
           ratio: player.spearTimer / maxDuration,
           capRatio: (player.spearDuration || 0) / maxDuration,
+          secondaryRatio: (player.spearTimerSecondary || 0) / maxDuration,
+          secondaryColor: "#DDA677",
           color: getIconStyleColor('player', PALETTE.ice),
           iconImage: assets?.churchPowerups?.spear?.iconImage || null,
           iconKey: 'upgradeSpear',
@@ -1021,6 +1050,8 @@
           label: skillNames.sentry || 'Sentry',
           ratio: player.sentryTimer / maxDuration,
           capRatio: (player.sentryDuration || 0) / maxDuration,
+          secondaryRatio: (player.sentryTimerSecondary || 0) / maxDuration,
+          secondaryColor: "#DDA677",
           color: getIconStyleColor('player', PALETTE.ice),
           iconImage: assets?.churchPowerups?.sentry?.iconImage || null,
           iconKey: 'upgradeSentry',
@@ -1081,7 +1112,19 @@
       const visibleRows = Math.min(rows.length, maxRows);
       const rowYs = Array.from({ length: visibleRows }, (_, idx) => rowStart + rowGap * idx);
       rows.slice(0, visibleRows).forEach((row, idx) => {
-        drawPillMeterRow(x, rowYs[idx], width, row.label, row.ratio, row.color, row.iconImage, row.iconKey, row.capRatio);
+        drawPillMeterRow(
+          x,
+          rowYs[idx],
+          width,
+          row.label,
+          row.ratio,
+          row.color,
+          row.iconImage,
+          row.iconKey,
+          row.capRatio,
+          row.secondaryRatio,
+          row.secondaryColor,
+        );
       });
     };
 
