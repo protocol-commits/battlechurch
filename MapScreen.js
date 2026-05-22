@@ -96,7 +96,7 @@
     speedMax: 50,                 // Fastest travel speed for a demon icon (pixels/second).
     arcMinPx: 44,                  // Minimum arc bend amount for curved routes.
     arcMaxPx: 108,                 // Maximum arc bend amount for curved routes.
-    fadeOutDistancePx: 50,         // Start fading out when this close to the target district.
+    fadeOutDistancePx: 30,         // Start fading out when this close to the target district.
     spawnScaleInMs: 230,           // Time for icon to scale from 0 to full size at spawn.
     scatterRadiusMinPx: 12,        // Minimum initial radial scatter distance from hellmouth.
     scatterRadiusMaxPx: 34,        // Maximum initial radial scatter distance from hellmouth.
