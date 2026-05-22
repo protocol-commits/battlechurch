@@ -11476,7 +11476,7 @@ function applyWeaponPickupEffect(pickup) {
       applyNpcWeaponPowerup("npcScriptureWeapon", def);
       triggerNpcPowerupDialogue("npcScriptureWeapon");
       showWeaponPowerupConfigText({
-        text: "Quote Scripture",
+        text: def?.label || "Trust Scripture",
         textColor: "#ffa45a",
         description: "Congregants fire piercing flames",
         spokenName: "Scripture",

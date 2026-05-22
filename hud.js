@@ -219,7 +219,7 @@
         case 'faith_cannon':
           return 'Act in Faith';
         case 'fire':
-          return 'Quote Scripture';
+          return 'Trust Scripture';
         case 'heart':
           return 'Heart Charm';
         case 'arrow':
@@ -261,7 +261,7 @@
         case 'faith_cannon':
           return 'Act in Faith';
         case 'fire':
-          return 'Quote Scripture';
+          return 'Trust Scripture';
         case 'heart':
           return 'Heart Charm';
         case 'arrow':
@@ -1050,8 +1050,10 @@
       }
       if (player.speedBoostTimer > 0) {
         const duration = Math.max(0.001, player.speedBoostDuration || 0);
+        const hasteLabel =
+          window.BattlechurchPowerupDefinitions?.utilityPowerupDefs?.haste?.label || "Speed Boost";
         utilityRows.push({
-          label: skillNames.haste || 'Quicken',
+          label: hasteLabel,
           ratio: duration > 0 ? player.speedBoostTimer / duration : 0,
           color: getIconStyleColor('utility', PALETTE.teal),
           iconImage: assets?.utility?.haste?.iconImage || null,
@@ -1060,8 +1062,10 @@
       }
       if (player.powerExtendTimer > 0) {
         const duration = Math.max(0.001, player.powerExtendDuration || 0);
+        const extenderLabel =
+          window.BattlechurchPowerupDefinitions?.utilityPowerupDefs?.extender?.label || "Perseverance";
         utilityRows.push({
-          label: skillNames.swordOfTheSpirit || 'Perseverance (extends weapons)',
+          label: extenderLabel,
           ratio: duration > 0 ? player.powerExtendTimer / duration : 0,
           color: getIconStyleColor('utility', PALETTE.gold),
           iconImage: assets?.utility?.extender?.iconImage || null,

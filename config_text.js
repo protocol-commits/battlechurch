@@ -44,7 +44,7 @@
       modes: {
         wisdom_missle: "Apply Wisdom",
         faith_cannon: "Act in Faith",
-        fire: "Quote Scripture",
+        fire: "Trust Scripture",
         heart: "Heart Charm",
         arrow: "",
       },

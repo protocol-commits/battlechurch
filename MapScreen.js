@@ -447,10 +447,11 @@
     return Number.isFinite(volume) ? volume : 1;
   }
 
-  function playMapAmbientSfx(src, volume = 0.45) {
+  function playMapAmbientSfx(src, volume = 0.45, { allowMutedPlayback = false } = {}) {
     if (typeof Audio === "undefined") return null;
-    const effectiveVolume = getEffectiveMapSfxVolume(volume);
-    if (effectiveVolume <= 0) return null;
+    const baseVolume = Number.isFinite(volume) ? volume : 0.45;
+    const effectiveVolume = getEffectiveMapSfxVolume(baseVolume);
+    if (effectiveVolume <= 0 && !allowMutedPlayback) return null;
     let pool = mapAmbientPools.get(src);
     if (!pool) {
       pool = [];
@@ -463,8 +464,8 @@
       pool.push(audio);
     }
     if (!audio) return null;
-    audio.volume = effectiveVolume;
-    audio.__mapAmbientBaseVolume = effectiveVolume;
+    audio.__mapAmbientBaseVolume = baseVolume;
+    audio.volume = Math.max(0, effectiveVolume);
     audio.currentTime = 0;
     try {
       const playPromise = audio.play();
@@ -508,12 +509,22 @@
 
   function updateMapAmbient() {
     const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+    if (!state.active) {
+      if (state.ambient.active || state.ambient.fadeOut || mapAmbientActive.length) {
+        stopMapAmbient();
+      }
+      return;
+    }
+    const realm = resolveMapRealmState(now);
+    const isDemonRealm = Boolean(realm?.demon);
     if (typeof window !== "undefined" && typeof window.isSfxEnabled === "function") {
       if (!window.isSfxEnabled()) {
         if (state.ambient.active && !state.ambient.fadeOut) stopMapAmbient({ fade: true });
         return;
       }
     }
+    if (!state.ambient.active && !state.ambient.fadeOut) startMapAmbient();
+    const realmGain = isDemonRealm ? 1 : 0;
     if (state.ambient.fadeOut) {
       const t = state.ambient.fadeStart ? (now - state.ambient.fadeStart) / state.ambient.fadeDuration : 1;
       const factor = Math.max(0, 1 - t);
@@ -524,7 +535,7 @@
           continue;
         }
         const base = Number.isFinite(audio.__mapAmbientBaseVolume) ? audio.__mapAmbientBaseVolume : 0.45;
-        audio.volume = base * factor;
+        audio.volume = base * factor * realmGain;
         if (t >= 1) {
           try {
             audio.pause();
@@ -542,13 +553,22 @@
       return;
     }
     if (!state.ambient.active) return;
+    for (let i = mapAmbientActive.length - 1; i >= 0; i -= 1) {
+      const audio = mapAmbientActive[i];
+      if (!audio) {
+        mapAmbientActive.splice(i, 1);
+        continue;
+      }
+      const base = Number.isFinite(audio.__mapAmbientBaseVolume) ? audio.__mapAmbientBaseVolume : 0.45;
+      audio.volume = getEffectiveMapSfxVolume(base) * realmGain;
+    }
     if (!state.ambient.nextAt) {
       state.ambient.nextAt = now + 600 + Math.random() * 900;
       return;
     }
     if (now < state.ambient.nextAt) return;
     const src = MAP_AMBIENT_SRCS[Math.floor(Math.random() * MAP_AMBIENT_SRCS.length)];
-    playMapAmbientSfx(src, 0.45);
+    playMapAmbientSfx(src, 0.45, { allowMutedPlayback: true });
     const gap = 700 + Math.random() * 1400;
     state.ambient.lastAt = now;
     state.ambient.nextAt = now + gap;
@@ -3048,7 +3068,9 @@
       updateSelectionFromHover(rect);
     }
     const pulse = Math.sin((Date.now() / 1000) * 3) * 2;
-    drawFrontlineBoundary(ctx, rect);
+    if (realmState.demon) {
+      drawFrontlineBoundary(ctx, rect);
+    }
     const mapData = window.BattlechurchMapData;
     if (mapData) {
       mapData.districts.forEach((district) =>
