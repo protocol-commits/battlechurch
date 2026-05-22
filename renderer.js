@@ -15364,7 +15364,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
 
     const colors = (typeof window !== "undefined" && window.UIStyles?.colors) || {};
     const semantic = (typeof window !== "undefined" && window.UIStyles?.typography?.canvasSemantic) || {};
-    const captionSize = Math.round((semantic.caption?.size || 20) * 0.72);
+    const wavePillToken = semantic.body || semantic.caption || { size: 20 };
+    const captionSize = Math.round(Math.max(18, wavePillToken.size * 0.9));
 
     ctx.save();
     ctx.font = `700 ${captionSize}px ${UI_FONT_FAMILY || "sans-serif"}`;

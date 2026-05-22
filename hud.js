@@ -1464,6 +1464,12 @@
       ctx.fillStyle = PALETTE.softWhite;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
+      const waveLabelToken =
+        (typeof UIStyles !== "undefined" && UIStyles.typography?.canvasSemantic?.caption) || null;
+      const waveLabelBaseSize = Math.max(
+        HUD_FONTS.districtMeterLabel + 2,
+        Math.round((Number(waveLabelToken?.size) || HUD_FONTS.meterLabel || 15) * 0.75),
+      );
       const activeWaveNum = levelStatus.waveNum || levelStatus.wave || 1;
       for (let i = 0; i < battleTotals.length; i += 1) {
         const segStart = segStarts[i];
@@ -1472,7 +1478,7 @@
         const isActiveBattle = (i + 1) === currentBattlefield;
         const label = isActiveBattle ? `Wave ${activeWaveNum}` : `Battlefield ${i + 1}`;
         const maxLabelWidth = Math.max(26, segWidths[i] - 8);
-        const fontSize = fitFontSize(label, HUD_FONTS.districtMeterLabel, maxLabelWidth, "");
+        const fontSize = fitFontSize(label, waveLabelBaseSize, maxLabelWidth, "");
         ctx.font = `${fontSize}px ${UI_FONT_FAMILY}`;
         ctx.fillText(label, centerX, innerY + innerH / 2 + 0.5);
       }
