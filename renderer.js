@@ -7450,28 +7450,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       drawGroup(leftItems, leftStartX);
       drawGroup(rightItems, rightStartX);
 
-      // Congregation command ready dot next to PRAYER button
-      const { player: bindingsPlayer } = requireBindings();
-      const cmdReady = typeof bindingsPlayer?.isCongregationCommandReady === "function"
-        ? bindingsPlayer.isCongregationCommandReady()
-        : false;
-      if (cmdReady) {
-        const prayerItem = rightItems[rightItems.length - 1];
-        const { buttonWidth: prayerBtnWidth } = measureButton(prayerItem);
-        const dotX = rightStartX + prayerBtnWidth + 8;
-        const dotY = startY + buttonHeight / 2;
-        const dotR = 5;
-        const pulse = 0.55 + 0.45 * Math.sin(Date.now() * 0.008);
-        ctx.save();
-        ctx.shadowColor = "rgba(100, 220, 255, 0.9)";
-        ctx.shadowBlur = 8 * pulse;
-        ctx.globalAlpha = 0.7 + 0.3 * pulse;
-        ctx.fillStyle = "#7EDDFF";
-        ctx.beginPath();
-        ctx.arc(dotX, dotY, dotR, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-      }
       ctx.restore();
     };
     ctx.save();

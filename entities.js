@@ -2181,11 +2181,6 @@
       this.wordOfGodDuration = 0;
     }
     this.wordOfGodCooldown = Math.max(0, this.wordOfGodCooldown - dt * timerDrainScale);
-    this.congregationCommandCharge = Math.min(
-      Math.max(0.001, this.congregationCommandChargeRequired || 1),
-      Math.max(0, (this.congregationCommandCharge || 0) + dt * timerDrainScale),
-    );
-
     this.armorTimer = Math.max(0, this.armorTimer - dt * timerDrainScale);
     if (this.armorTimer <= 0) this.armorReduction = 0;
 
@@ -2286,7 +2281,7 @@
       typeof consumeCongregationClick === "function" ? consumeCongregationClick() : false;
     if (congregationCommand) {
       const cTapCost = (this.prayerChargeRequired || 6000) / 6;
-      if (this.isCongregationCommandReady() && (this.prayerCharge || 0) >= cTapCost) {
+      if ((this.prayerCharge || 0) >= cTapCost) {
         const triggerCongregationCommand =
           typeof window !== "undefined" ? window.triggerCongregationCommand : null;
         if (
@@ -2298,7 +2293,6 @@
               ? performance.now()
               : Date.now();
           this._paperdollCongregationCommandUntil = nowMs + 380;
-          this.congregationCommandCharge = 0;
           this.prayerCharge = Math.max(0, (this.prayerCharge || 0) - cTapCost);
           if (congregationCommand === "path") {
             window.FloatingText?.npcsYell?.("Pastor Protection");
@@ -2839,7 +2833,7 @@
   }
 
   isCongregationCommandReady() {
-    return this.getCongregationCommandChargeRatio() >= 1;
+    return true;
   }
 
   isPrayerBombReady() {
