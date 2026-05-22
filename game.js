@@ -523,6 +523,7 @@ const briefTeaserState = {
 const briefTeaserDialogueState = {
   timerSec: 0,
   lineIndex: 0,
+  linePool: [],
 };
 
 function clearBriefTeaserSpawnTimers() {
@@ -723,6 +724,7 @@ function updateBriefTeaserNpcDialogue(dt, levelStatus) {
   const teaserStageActive = stage === "briefingTeaser" || stage === "congregationToTeaser";
   if (!teaserStageActive) {
     briefTeaserDialogueState.timerSec = 0;
+    briefTeaserDialogueState.linePool = [];
     return;
   }
   const teaserLines = Array.isArray(CONGREGATION_TEASER_DIALOGUE.lines)
@@ -760,8 +762,12 @@ function updateBriefTeaserNpcDialogue(dt, levelStatus) {
     return;
   }
   const npc = eligible[Math.floor(Math.random() * eligible.length)];
-  const line = lines[briefTeaserDialogueState.lineIndex % lines.length];
-  briefTeaserDialogueState.lineIndex = (briefTeaserDialogueState.lineIndex + 1) % lines.length;
+  const normalizedLines = lines.map((line) => String(line).trim()).filter(Boolean);
+  const pool = Array.isArray(briefTeaserDialogueState.linePool) ? briefTeaserDialogueState.linePool : [];
+  if (!pool.length) {
+    briefTeaserDialogueState.linePool = normalizedLines.slice().sort(() => Math.random() - 0.5);
+  }
+  const line = briefTeaserDialogueState.linePool.shift();
   if (line) {
     npcCheer(npc, line, UI_COLOR.speechBubbleText, { life: bubbleLifeSec });
     npc.dialogueCooldownUntil = now + CONGREGATION_DIALOGUE_COOLDOWN_MS;
@@ -4031,7 +4037,6 @@ function showWaveHealthSnapshot() {
 
   const linesByTier = waveEndConfig.linesByTier || {};
   const maxSpeakers = Math.max(1, Math.round(waveEndConfig.maxSpeakers || 5));
-  const longLineLife = Math.max(0.1, Number(waveEndConfig.longLineLife) || 6.2);
   const shortLineLife = Math.max(0.1, Number(waveEndConfig.shortLineLife) || 5.4);
 
   const speakers = [];
@@ -4041,16 +4046,6 @@ function showWaveHealthSnapshot() {
     speakers.push({ npc, line, life });
     speakerSet.add(npc);
   };
-
-  if (buckets.full.length) {
-    const longLineNpc = randomChoice(buckets.full);
-    const faith = Math.max(0, Math.round(longLineNpc.faith || 0));
-    const longLine =
-      typeof waveEndConfig.longLine === "function"
-        ? waveEndConfig.longLine(faith, formationLabel)
-        : "Doing fine";
-    addSpeaker(longLineNpc, longLine, longLineLife);
-  }
 
   const tierOrder = Array.isArray(waveEndConfig.tierOrder)
     ? waveEndConfig.tierOrder
@@ -4139,10 +4134,42 @@ function queueCongregationWaveIntroDialogue(levelStatus) {
       },
     });
   }
+  const responseBaseDelay = Math.max(0, Number(responses[0]?.delay) || 1.35);
+  const responseStagger = Math.max(0.25, Number(firstWaveIntro.responseStaggerSec) || 0.9);
+  const allRespondersSpeak = Boolean(firstWaveIntro.allRespondersSpeak);
+  if (allRespondersSpeak) {
+    const responders = getCongregationConversationResponders();
+    if (!responders.length || !responses.length) return;
+    const shuffledResponders = responders.slice().sort(() => Math.random() - 0.5);
+    const shuffledResponses = responses.slice().sort(() => Math.random() - 0.5);
+    shuffledResponders.forEach((npc, idx) => {
+      if (!npc) return;
+      const response = shuffledResponses[idx % shuffledResponses.length];
+      if (!response?.text) return;
+      const perLineDelay = Math.max(0, Number(response.delay));
+      const cumulativeDelay = Number.isFinite(perLineDelay)
+        ? perLineDelay + idx * responseStagger
+        : responseBaseDelay + idx * responseStagger;
+      congregationWaveIntroDialogueState.queue.push({
+        delay: cumulativeDelay,
+        run() {
+          congregationWaveIntroDialogueState.usedResponders.add(npc);
+          npcCheer(npc, response.text, UI_COLOR.speechBubbleText, {
+            life: Number(response.life) || 3.2,
+          });
+        },
+      });
+    });
+    return;
+  }
   responses.forEach((response, idx) => {
     if (!response?.text) return;
+    const perLineDelay = Math.max(0, Number(response.delay));
+    const cumulativeDelay = Number.isFinite(perLineDelay)
+      ? perLineDelay + idx * responseStagger
+      : responseBaseDelay + idx * responseStagger;
     congregationWaveIntroDialogueState.queue.push({
-      delay: Math.max(0, Number(response.delay) || 1.35),
+      delay: cumulativeDelay,
       run() {
         const available = getCongregationConversationResponders();
         if (!available.length) return;
@@ -4163,7 +4190,11 @@ function queueCongregationWaveIntroDialogue(levelStatus) {
 function updateCongregationWaveIntroDialogue(dt, levelStatus) {
   const stage = levelStatus?.stage || "";
   const waveNumber = Number(levelStatus?.wave) || 0;
-  if (stage !== "waveIntro" || waveNumber !== 1) {
+  const allowCarryIntoWaveActive =
+    waveNumber === 1 &&
+    stage === "waveActive" &&
+    congregationWaveIntroDialogueState.queue.length > 0;
+  if ((stage !== "waveIntro" && !allowCarryIntoWaveActive) || waveNumber !== 1) {
     if (congregationWaveIntroDialogueState.activeKey) {
       resetCongregationWaveIntroDialogueState();
     }

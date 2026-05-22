@@ -334,7 +334,28 @@
   function npcCheer(npc, line, color = "#c9ffe5", { life = 1.6, fadeDelay = 0 } = {}) {
     if (!npc || !line) return;
     const bubbleLife = Math.max(0.1, life);
-    addAt(npc.x, npc.y - npc.radius - 20, line, color, {
+    const existing = activeTexts.find(
+      (ft) =>
+        ft &&
+        ft.entity === npc &&
+        ft.speechBubble &&
+        ft.bubbleTheme === "npc" &&
+        ft.life > 0,
+    );
+    if (existing) {
+      existing.text = line;
+      existing.color = color;
+      existing.life = bubbleLife;
+      existing.initialLife = bubbleLife;
+      existing.fadeLength = Math.max(0.0001, bubbleLife - Math.max(0, Number(fadeDelay) || 0));
+      existing.fadeDelay = Math.max(0, Number(fadeDelay) || 0);
+      existing.fadeDelayRemaining = existing.fadeDelay;
+      existing.x = npc.x;
+      existing.y = npc.y - npc.radius - 20;
+      existing.offsetY = -npc.radius - 20;
+      return existing;
+    }
+    return addAt(npc.x, npc.y - npc.radius - 20, line, color, {
       speechBubble: true,
       vy: 0,
       life: bubbleLife,
