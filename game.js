@@ -3361,6 +3361,9 @@ function getActiveChurchPowerupCount() {
 }
 
 function canSpawnChurchPowerup() {
+  const stageName = typeof levelManager?.getStatus === "function" ? levelManager.getStatus()?.stage : "";
+  const isBossStage = stageName === "bossIntro" || stageName === "bossActive";
+  if (isBossStage) return false;
   return getActiveChurchPowerupCount() < 1 && powerUpRespawnTimer <= 0;
 }
 
@@ -11840,6 +11843,14 @@ function updateWeaponPickups(dt) {
 }
 
 function updateChurchPowerupPickups(dt) {
+  const stageName = typeof levelManager?.getStatus === "function" ? levelManager.getStatus()?.stage : "";
+  const isBossStage = stageName === "bossIntro" || stageName === "bossActive";
+  if (isBossStage) {
+    if (churchPowerupPickups.length > 0) {
+      churchPowerupPickups.splice(0, churchPowerupPickups.length);
+    }
+    return;
+  }
   churchPowerupPickups.forEach((pickup) => {
     if (!pickup) return;
     pickup.update(dt);
