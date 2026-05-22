@@ -57,6 +57,7 @@
   let districtExteriorImage = null;
   let districtExteriorImageLoaded = false;
   let districtExteriorImageFailed = false;
+  const hellmouthFlameSheetCache = new Map();
   let mapAssets = null;
   const districtAnimators = new Map();
   const MAP_REALM_FLICKER = Object.freeze({
@@ -108,6 +109,15 @@
     blurPx: 0.7,                   // Small blur amount to soften icon edges slightly.
     iconScale: 4.75,               // Base visual size of marching demon icons.
   });
+  const MAP_HELLMOUTH_FLAME_FRAME_COUNT = 14;
+  const MAP_HELLMOUTH_FLAME_FRAME_DURATION = 0.07;
+  const MAP_HELLMOUTH_FLAME_SPRITE_ROOT = "./assets/sprites/items/fire";
+  // Easy tweak point: edit offsets/scale/sheet here to reposition flames around the hellmouth.
+  const MAP_HELLMOUTH_FLAMES = [
+    { sheet: "Group 5 - 3.png", offsetX: 50, offsetY: 104, scale: 1.95, alpha: 0.42, phaseOffset: 0.0 },
+    { sheet: "Group 4 - 1.png", offsetX: 75, offsetY: 108, scale: 1.56, alpha: 0.58, phaseOffset: 0.17 },
+    { sheet: "Group 4 - 3.png", offsetX: 20, offsetY: 100, scale: 1.82, alpha: 0.34, phaseOffset: 0.33 },
+  ];
 
   function readMapScreenRenderStyleNumber(key, fallback) {
     const root = (() => {
@@ -1090,6 +1100,54 @@
       districtExteriorImageFailed = true;
     };
     districtExteriorImage.src = DISTRICT_EXTERIOR_IMAGE_PRIMARY;
+  }
+
+  function loadHellmouthFlameSheets() {
+    for (const flame of MAP_HELLMOUTH_FLAMES) {
+      const sheet = flame?.sheet;
+      if (!sheet || hellmouthFlameSheetCache.has(sheet)) continue;
+      const img = new Image();
+      const rec = { image: img, loaded: false, failed: false };
+      img.onload = () => {
+        rec.loaded = true;
+      };
+      img.onerror = () => {
+        rec.failed = true;
+      };
+      img.src = `${MAP_HELLMOUTH_FLAME_SPRITE_ROOT}/${sheet}`;
+      hellmouthFlameSheetCache.set(sheet, rec);
+    }
+  }
+
+  function drawHellmouthFlames(ctx, rect, alpha = 1) {
+    if (!ctx || !rect) return;
+    const origin = getHellmouthOriginPoint(rect);
+    if (!origin) return;
+    const globalAlpha = Math.max(0, Math.min(1, Number(alpha) || 0));
+    if (globalAlpha <= 0.001) return;
+    const nowSec = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
+    for (const flame of MAP_HELLMOUTH_FLAMES) {
+      if (!flame?.sheet) continue;
+      const rec = hellmouthFlameSheetCache.get(flame.sheet);
+      if (!rec?.loaded || !rec.image?.width || !rec.image?.height) continue;
+      const img = rec.image;
+      const frameWidth = Math.max(1, Math.floor(img.width / MAP_HELLMOUTH_FLAME_FRAME_COUNT));
+      const frameHeight = Math.max(1, img.height);
+      const phaseOffset = Number(flame.phaseOffset) || 0;
+      const frameFloat = (nowSec + phaseOffset) / MAP_HELLMOUTH_FLAME_FRAME_DURATION;
+      const frameIndex = Math.floor(frameFloat % MAP_HELLMOUTH_FLAME_FRAME_COUNT);
+      const sx = frameIndex * frameWidth;
+      const scale = Math.max(0.1, Number(flame.scale) || 1);
+      const drawW = frameWidth * scale;
+      const drawH = frameHeight * scale;
+      const dx = origin.x + (Number(flame.offsetX) || 0) - drawW * 0.5;
+      const dy = origin.y + (Number(flame.offsetY) || 0) - drawH * 0.5;
+      const flameAlpha = Math.max(0, Math.min(1, Number(flame.alpha) || 1));
+      ctx.save();
+      ctx.globalAlpha = globalAlpha * flameAlpha;
+      ctx.drawImage(img, sx, 0, frameWidth, frameHeight, dx, dy, drawW, drawH);
+      ctx.restore();
+    }
   }
 
   function setAssets(assets) {
@@ -3212,6 +3270,7 @@
     if (!state.active) return;
     loadMapImages();
     loadDistrictExteriorImage();
+    loadHellmouthFlameSheets();
     updateMapRealmLightningEffects(dt);
     updateHellmouthInvasion(dt);
     updateArmyMarchAnimation(dt);
@@ -3329,6 +3388,7 @@
       ? (transitionActive ? Math.max(0, Math.min(1, 1 - easedCrossfadeT)) : 1)
       : 0;
     if (invasionAlpha > 0.001) {
+      drawHellmouthFlames(ctx, rect, invasionAlpha);
       drawHellmouthInvasion(ctx, invasionAlpha);
     }
     if (transitionActive) {
