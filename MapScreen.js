@@ -5,6 +5,7 @@
   const MAP_IMAGE_NORMAL_FALLBACK = "./assets/backgrounds/map.png";
   const MAP_IMAGE_DEMON_PRIMARY = "./assets/backgrounds/map/map_demon.png";
   const MAP_IMAGE_DEMON_FALLBACK = "./assets/backgrounds/map.png";
+  const MAP_IMAGE_DEMON_HOLE_PRIMARY = "./assets/backgrounds/map/map-demon-hole.png";
   const DISTRICT_EXTERIOR_IMAGE_PRIMARY = "./assets/backgrounds/mission-1.png";
   const HIT_RADIUS_BASE = 10;
   const UI_FONT_FAMILY =
@@ -54,6 +55,9 @@
   let mapDemonImage = null;
   let mapDemonImageLoaded = false;
   let mapDemonImageFailed = false;
+  let mapDemonHoleImage = null;
+  let mapDemonHoleImageLoaded = false;
+  let mapDemonHoleImageFailed = false;
   let districtExteriorImage = null;
   let districtExteriorImageLoaded = false;
   let districtExteriorImageFailed = false;
@@ -114,9 +118,9 @@
   const MAP_HELLMOUTH_FLAME_SPRITE_ROOT = "./assets/sprites/items/fire";
   // Easy tweak point: edit offsets/scale/sheet here to reposition flames around the hellmouth.
   const MAP_HELLMOUTH_FLAMES = [
-    { sheet: "Group 5 - 3.png", offsetX: 50, offsetY: 104, scale: 1.95, alpha: 0.42, phaseOffset: 0.0 },
-    { sheet: "Group 4 - 1.png", offsetX: 75, offsetY: 108, scale: 1.56, alpha: 0.58, phaseOffset: 0.17 },
-    { sheet: "Group 4 - 3.png", offsetX: 20, offsetY: 100, scale: 1.82, alpha: 0.34, phaseOffset: 0.33 },
+    { sheet: "Group 5 - 3.png", offsetX: -90, offsetY: 30, scale: 3.95, alpha: 0.42, phaseOffset: 0.0 },
+    { sheet: "Group 4 - 1.png", offsetX:  70, offsetY: -20, scale: 3.56, alpha: 0.38, phaseOffset: 0.17 },
+    { sheet: "Group 4 - 3.png", offsetX: -20, offsetY: 50, scale: 3.82, alpha: 0.34, phaseOffset: 0.33 },
   ];
 
   function readMapScreenRenderStyleNumber(key, fallback) {
@@ -661,6 +665,17 @@
         mapDemonImageFailed = true;
       };
       mapDemonImage.src = MAP_IMAGE_DEMON_PRIMARY;
+    }
+    if (!mapDemonHoleImage && !mapDemonHoleImageLoaded && !mapDemonHoleImageFailed) {
+      mapDemonHoleImage = new Image();
+      mapDemonHoleImage.onload = () => {
+        mapDemonHoleImageLoaded = true;
+        mapDemonHoleImage = maybeApplyMapScreenShadowCrush(mapDemonHoleImage);
+      };
+      mapDemonHoleImage.onerror = () => {
+        mapDemonHoleImageFailed = true;
+      };
+      mapDemonHoleImage.src = MAP_IMAGE_DEMON_HOLE_PRIMARY;
     }
   }
 
@@ -1457,33 +1472,48 @@
     const mapImage = activeImage || null;
     const rect = computeMapRect(canvas, mapImage);
     if (mapImage) {
-      const stripHeight = 14;
-      const time = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
-      const amp = 0.9;
-      const scaleY = rect.h / mapImage.height;
-      for (let y = 0; y < mapImage.height; y += stripHeight) {
-        const wave = Math.sin(time * 2 + y * 0.15) + Math.sin(time * 1.2 + y * 0.05);
-        const offset = wave * amp;
-        const srcH = Math.min(stripHeight, mapImage.height - y);
-        const destY = rect.y + y * scaleY;
-        const destH = srcH * scaleY;
-        ctx.drawImage(
-          mapImage,
-          0,
-          y,
-          mapImage.width,
-          srcH,
-          rect.x + offset,
-          destY,
-          rect.w,
-          destH,
-        );
-      }
+      drawWavyMapLayer(ctx, mapImage, rect);
     } else {
       ctx.fillStyle = "#0b111a";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
     return rect;
+  }
+
+  function drawWavyMapLayer(ctx, image, rect) {
+    if (!ctx || !image || !rect) return;
+    const stripHeight = 14;
+    const time = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
+    const amp = 0.9;
+    const scaleY = rect.h / image.height;
+    for (let y = 0; y < image.height; y += stripHeight) {
+      const wave = Math.sin(time * 2 + y * 0.15) + Math.sin(time * 1.2 + y * 0.05);
+      const offset = wave * amp;
+      const srcH = Math.min(stripHeight, image.height - y);
+      const destY = rect.y + y * scaleY;
+      const destH = srcH * scaleY;
+      ctx.drawImage(
+        image,
+        0,
+        y,
+        image.width,
+        srcH,
+        rect.x + offset,
+        destY,
+        rect.w,
+        destH,
+      );
+    }
+  }
+
+  function drawMapDemonHoleLayer(ctx, rect, alpha = 1) {
+    if (!ctx || !rect || !mapDemonHoleImageLoaded || !mapDemonHoleImage) return;
+    const globalAlpha = Math.max(0, Math.min(1, Number(alpha) || 0));
+    if (globalAlpha <= 0.001) return;
+    ctx.save();
+    ctx.globalAlpha = globalAlpha;
+    drawWavyMapLayer(ctx, mapDemonHoleImage, rect);
+    ctx.restore();
   }
 
   function drawFireOverlayInCurrentTransform(
@@ -1617,6 +1647,7 @@
   }
 
   function drawDistrictNode(ctx, district, rect, pulse, options = {}) {
+    if (options?.suppressNode) return;
     const showDemonIcons = options.showDemonIcons !== false;
     const position = getDistrictPosition(district, rect);
     const dpr = window.devicePixelRatio || 1;
@@ -3388,8 +3419,17 @@
       ? (transitionActive ? Math.max(0, Math.min(1, 1 - easedCrossfadeT)) : 1)
       : 0;
     if (invasionAlpha > 0.001) {
+      // Layer stack (bottom -> top): demon base map, flames, demon-hole cutout layer, map/UI/sprites.
       drawHellmouthFlames(ctx, rect, invasionAlpha);
-      drawHellmouthInvasion(ctx, invasionAlpha);
+      const mapData = window.BattlechurchMapData;
+      if (mapData?.districts?.length) {
+        const pulse = Math.sin((Date.now() / 1000) * 3) * 2;
+        const capitalDistrict = mapData.districts.find((district) => district && district.type === "capital");
+        if (capitalDistrict) {
+          drawDistrictNode(ctx, capitalDistrict, rect, pulse, { showDemonIcons: realmState.demon });
+        }
+      }
+      drawMapDemonHoleLayer(ctx, rect, invasionAlpha);
     }
     if (transitionActive) {
       const mapEmberAlpha = Math.max(0, Math.min(1, 1 - easedCrossfadeT));
@@ -3424,8 +3464,20 @@
     const mapData = window.BattlechurchMapData;
     if (mapData) {
       mapData.districts.forEach((district) =>
-        drawDistrictNode(ctx, district, rect, pulse, { showDemonIcons: realmState.demon }),
+        drawDistrictNode(
+          ctx,
+          district,
+          rect,
+          pulse,
+          {
+            showDemonIcons: realmState.demon,
+            suppressNode: invasionAlpha > 0.001 && district?.type === "capital",
+          },
+        ),
       );
+    }
+    if (invasionAlpha > 0.001) {
+      drawHellmouthInvasion(ctx, invasionAlpha);
     }
     drawInitialMarchOriginMarker(ctx);
     drawArmyMarchOverlay(ctx);

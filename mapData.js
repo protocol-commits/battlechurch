@@ -34,7 +34,7 @@
     { id: "marsh_end", name: "Marsh End", frontId: "southwest", x: 0.6924, y: 0.4833 },
 
     // Capital (final boss) — right column (lower 1/3)
-    { id: "highgate", name: "Highgate", frontName: FRONT_NAMES.capital, type: "capital", x: 0.7836, y: 0.7102 },
+    { id: "highgate", name: "Highgate", frontName: FRONT_NAMES.capital, type: "capital", x: 0.7836, y: 0.7502 },
   ];
 
   function getDefaultDistrictStartCount(districtId) {
