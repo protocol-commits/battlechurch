@@ -8237,9 +8237,9 @@ async function loadProjectileAssets(cache, assets) {
   await Promise.all(projectileEntries);
 }
 
-// Load only the enemies needed for MapScreen (miniImp, miniDemonLord)
+// Load only the enemies needed for MapScreen (miniImp, miniDemonLord, miniHighDemon)
 async function loadMapEnemyAssets(cache, assets) {
-  const mapEnemies = ['miniImp', 'miniDemonLord'];
+  const mapEnemies = ['miniImp', 'miniDemonLord', 'miniHighDemon'];
   const enemyTypes = Object.entries(ASSET_MANIFEST.enemies)
     .filter(([enemyName]) => mapEnemies.includes(enemyName))
     .map(async ([enemyName, enemyDefs]) => {
@@ -8258,7 +8258,7 @@ async function loadMapEnemyAssets(cache, assets) {
 
 // Load all remaining enemies (excludes already-loaded map enemies)
 async function loadEnemyAssets(cache, assets, skipMapEnemies = false) {
-  const mapEnemies = ['miniImp', 'miniDemonLord'];
+  const mapEnemies = ['miniImp', 'miniDemonLord', 'miniHighDemon'];
   const enemyTypes = Object.entries(ASSET_MANIFEST.enemies)
     .filter(([enemyName]) => !skipMapEnemies || !mapEnemies.includes(enemyName))
     .map(async ([enemyName, enemyDefs]) => {

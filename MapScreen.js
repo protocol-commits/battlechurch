@@ -104,7 +104,8 @@
     weightP1Uncleared: 4.5,        // Target weight for districts not yet cleared on P1 (higher = picked more).
     weightP2FrontUnfortified: 1.4, // Target weight for P2-eligible pressure when the front is not fully fortified.
     weightFallback: 0.4,           // Low fallback target weight for other non-fortified districts.
-    alpha: 0.96,                   // Overall opacity multiplier for all demon march icons.
+    alpha: 0.9,                    // Overall opacity multiplier for all demon march icons.
+    blurPx: 0.7,                   // Small blur amount to soften icon edges slightly.
     iconScale: 4.75,               // Base visual size of marching demon icons.
   });
 
@@ -827,7 +828,8 @@
       { kind: "imp", clips: getMiniImpClips() },
       { kind: "clawed", clips: getMiniClawedDemonClips() },
       { kind: "firekeeper", clips: getMiniDemonFireKeeperClips() },
-      { kind: "lord", clips: getMiniDemonLordClips() },
+      // Prefer High Demon in invasion waves; fallback keeps this robust if the clip is missing.
+      { kind: "highdemon", clips: getMiniHighDemonClips() || getMiniDemonLordClips() },
     ].filter((entry) => entry && entry.clips);
   }
 
@@ -942,12 +944,7 @@
       fadeOutDistance: cfg.fadeOutDistancePx,
       totalDistance: distance,
       animator,
-      animState: {
-        timer: Math.random() * 0.8,
-        hold: 0.8 + Math.random() * 0.9,
-        minHold: 0.8,
-        maxHold: 1.7,
-      },
+      flipX: target.x < origin.x,
     };
   }
 
@@ -980,13 +977,12 @@
         continue;
       }
       entity.timer += dtSec;
-      updateAnimatorCycle(
-        entity.animator,
-        dtSec,
-        entity.animState,
-        entity.animState.minHold,
-        entity.animState.maxHold,
-      );
+      if (entity.animator?.currentName !== "walk") {
+        entity.animator.play("walk", { restart: true, loop: true });
+      }
+      entity.animator.update(dtSec);
+      const prevX = entity.x;
+      const prevY = entity.y;
       if (entity.timer < entity.scatterDuration) {
         const scatterT = Math.max(0, Math.min(1, entity.timer / Math.max(0.01, entity.scatterDuration)));
         entity.x = entity.originX + (entity.scatterX - entity.originX) * scatterT;
@@ -1004,6 +1000,11 @@
         );
         entity.x = p.x;
         entity.y = p.y;
+      }
+      const dx = entity.x - prevX;
+      const dy = entity.y - prevY;
+      if (Math.abs(dx) + Math.abs(dy) > 0.01) {
+        entity.flipX = dx < 0;
       }
       const spawnT = Math.max(0, Math.min(1, entity.timer / Math.max(0.01, entity.spawnScaleDuration)));
       entity.scale = spawnT;
@@ -1055,10 +1056,15 @@
       const baseSize = Math.max(1, clip.frameWidth || 1, clip.frameHeight || 1);
       const targetSize = HIT_RADIUS_BASE * cfg.iconScale;
       entity.animator.scale = (targetSize / baseSize) * Math.max(0.001, entity.scale);
+      ctx.save();
+      if (Number.isFinite(cfg.blurPx) && cfg.blurPx > 0) {
+        ctx.filter = `blur(${cfg.blurPx}px)`;
+      }
       entity.animator.draw(ctx, entity.x, entity.y - 8, {
         alpha: drawAlpha,
-        flipX: entity.targetX >= entity.x,
+        flipX: entity.flipX !== false,
       });
+      ctx.restore();
     }
   }
 
@@ -1105,6 +1111,10 @@
 
   function getMiniDemonLordClips() {
     return mapAssets?.enemies?.miniDemonLord || null;
+  }
+
+  function getMiniHighDemonClips() {
+    return mapAssets?.enemies?.miniHighDemon || null;
   }
 
   function updateAnimatorCycle(animator, dt, state, minHold, maxHold) {
