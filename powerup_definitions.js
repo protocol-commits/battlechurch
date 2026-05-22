@@ -205,10 +205,10 @@
       levelCosts: CHURCH_LEVEL_COSTS,
       tuning: {
         damage: 30,                  // damage per tracer shot (overrides arrow damage)
-        cooldown: 0.08,               // seconds between tracer bursts (lower = faster)
+        cooldown: 0.09,               // seconds between tracer bursts (lower = faster)
         spreadStep: 0.15,            // radians between each tracer pair
-        tracerSpeedMultiplier: 3.0,  // tracer speed multiplier vs base arrow speed
-        splashRadius: 80,            // splash radius in game pixels (world scale applied at runtime)
+        tracerSpeedMultiplier: 2.0,  // tracer speed multiplier vs base arrow speed
+        splashRadius: 60,            // splash radius in game pixels (world scale applied at runtime)
         splashDamageRatio: 0.5,      // splash damage as fraction of direct hit damage
       },
     },

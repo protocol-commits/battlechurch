@@ -766,6 +766,48 @@
           "visible": true
         }
       }
+    },
+    {
+      "slot": 20,
+      "name": "death",
+      "page": "pONE1",
+      "facing": "east",
+      "animation": "knockdown",
+      "behavior": "melee_thrust",
+      "playbackSpeed": 1,
+      "loop": true,
+      "layers": {
+        "0bas": {
+          "label": "Body",
+          "asset": "humn_v00",
+          "visible": true
+        },
+        "1out": {
+          "label": "Outfit",
+          "asset": "fstr_v02",
+          "visible": true
+        },
+        "4har": {
+          "label": "Hair",
+          "asset": "dap1_v03",
+          "visible": true
+        },
+        "5hat": {
+          "label": "Hat",
+          "asset": "none",
+          "visible": true
+        },
+        "6tla": {
+          "label": "Main Hand",
+          "asset": "none",
+          "visible": true
+        },
+        "7tlb": {
+          "label": "Off Hand",
+          "asset": "none",
+          "visible": true
+        }
+      }
     }
   ],
   "animationPresetMap": {},

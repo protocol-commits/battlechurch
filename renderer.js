@@ -8976,6 +8976,83 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.__battlechurchSkipPixelFontScale = prevSkipPixelFontScale;
   }
 
+  function drawGameOverOverlay() {
+    const { ctx, canvas, UI_FONT_FAMILY, pointerState, arenaFadeAlpha } = requireBindings();
+    const prevSkipPixelFontScale = ctx.__battlechurchSkipPixelFontScale === true;
+    ctx.__battlechurchSkipPixelFontScale = true;
+    ctx.save();
+
+    const blackoutAlpha = Math.max(0.9, Math.min(1, Number.isFinite(arenaFadeAlpha) ? arenaFadeAlpha : 1));
+    ctx.fillStyle = `rgba(0, 0, 0, ${blackoutAlpha})`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const titleType = getCanvasSemanticForScreen("pauseMenu", "title", "h1");
+    const buttonType = getCanvasSemanticForScreen("pauseMenu", "button", "button");
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = `900 ${Math.max(48, Math.round(titleType.size * 2.2))}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+    ctx.fillStyle = "#D44E52";
+    ctx.shadowColor = "rgba(140, 20, 20, 0.9)";
+    ctx.shadowBlur = 18;
+    ctx.shadowOffsetY = 2;
+    ctx.fillText("GAME OVER", centerX, centerY - 86);
+    ctx.restore();
+
+    const buttonWidth = Math.min(420, Math.round(canvas.width * 0.48));
+    const buttonHeight = 66;
+    const buttonX = Math.round(centerX - buttonWidth / 2);
+    const buttonY = Math.round(centerY + 6);
+    const focused = isAnnouncementButtonFocused("gameOver", 0);
+
+    ctx.save();
+    ctx.fillStyle = getEmberButtonGradient(ctx, buttonY, buttonHeight);
+    ctx.strokeStyle = EMBER_BUTTON_PALETTE.border;
+    ctx.lineWidth = 2;
+    roundRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 16, true, true);
+    if (focused) {
+      drawFocusRing(ctx, buttonX - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18);
+    }
+    ctx.fillStyle = EMBER_BUTTON_PALETTE.text;
+    ctx.shadowColor = EMBER_BUTTON_PALETTE.textShadow;
+    ctx.shadowBlur = 6;
+    ctx.shadowOffsetY = 1;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = `${buttonType.weight} ${Math.max(18, Math.round(buttonType.size * 1.2))}px ${UI_FONT_FAMILY}`;
+    ctx.fillText("Return to Map", centerX, buttonY + buttonHeight / 2);
+    ctx.restore();
+
+    const bounds = [{
+      key: "returnToMap",
+      x: buttonX,
+      y: buttonY,
+      width: buttonWidth,
+      height: buttonHeight,
+    }];
+    if (typeof window !== "undefined") {
+      window.__announcementButtons = { key: "gameOver", buttons: bounds };
+      if (pointerState && typeof pointerState.x === "number" && typeof pointerState.y === "number") {
+        const px = pointerState.x;
+        const py = pointerState.y;
+        const hoverIndex = bounds.findIndex(
+          (btn) =>
+            px >= btn.x && px <= btn.x + btn.width &&
+            py >= btn.y && py <= btn.y + btn.height,
+        );
+        if (hoverIndex >= 0) {
+          window.__announcementFocus = { key: "gameOver", index: hoverIndex };
+        }
+      }
+    }
+
+    ctx.restore();
+    ctx.__battlechurchSkipPixelFontScale = prevSkipPixelFontScale;
+  }
+
   function drawAimAssistOverlay() {
     const { ctx, aimState, aimAssist } = requireBindings();
     if (aimState.usingPointer) return;
@@ -14052,6 +14129,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     drawSpeedrunTimer();
     drawCongregationOverlay();
     drawHudComboUnderlay(ctx, canvas, UI_FONT_FAMILY, HUD_HEIGHT);
+    if (gameOver) {
+      drawGameOverOverlay();
+      return;
+    }
     // Effects are drawn earlier in the world pass so the player stays on top.
     if (paused && !gameOver && !mapLaunchHandoffActive) {
       drawPauseOverlay();

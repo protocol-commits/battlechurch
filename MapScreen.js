@@ -318,6 +318,32 @@
     }
   }
 
+  function resolveDistrictIdFromAnyRef(rawRef, districts) {
+    if (!Array.isArray(districts) || !districts.length) return null;
+    const orderedIds = districts.map((district) => district?.id).filter(Boolean);
+    if (!orderedIds.length) return null;
+    const asString = String(rawRef || "").trim();
+    if (!asString) return null;
+    if (orderedIds.includes(asString)) return asString;
+    const lowered = asString.toLowerCase();
+    const byName = districts.find((district) => String(district?.name || "").trim().toLowerCase() === lowered);
+    if (byName?.id) return byName.id;
+    const indexMatch = lowered.match(/(?:town|district|county)?[_\s-]*([0-9]{1,3})$/i);
+    if (indexMatch) {
+      const idx = Number(indexMatch[1]);
+      if (Number.isFinite(idx) && idx >= 1 && idx <= orderedIds.length) {
+        return orderedIds[idx - 1];
+      }
+    }
+    if (/^[0-9]{1,3}$/.test(lowered)) {
+      const idx = Number(lowered);
+      if (Number.isFinite(idx) && idx >= 1 && idx <= orderedIds.length) {
+        return orderedIds[idx - 1];
+      }
+    }
+    return null;
+  }
+
   function createFreshMapProgress(mapData) {
     const firstDistrictId = mapData?.getFirstDistrictId?.() || null;
     return {
@@ -3184,13 +3210,25 @@
         unlocked.add(capitalDistrictId);
       }
       const orderedDistrictIds = districts.map((district) => district.id);
+      const activeRun = mapProgress?.activeRun || null;
+      const activeRunDistrictId =
+        resolveDistrictIdFromAnyRef(activeRun?.districtId, districts) ||
+        resolveDistrictIdFromAnyRef(save?.districtId, districts) ||
+        resolveDistrictIdFromAnyRef(mapProgress?.selectedDistrictId, districts) ||
+        resolveDistrictIdFromAnyRef(mapProgress?.currentDistrictId, districts) ||
+        resolveDistrictIdFromAnyRef(mapProgress?.districtId, districts) ||
+        resolveDistrictIdFromAnyRef(mapProgress?.currentTownId, districts) ||
+        resolveDistrictIdFromAnyRef(mapProgress?.townId, districts) ||
+        null;
+      const hasValidActiveRunDistrict =
+        typeof activeRunDistrictId === "string" &&
+        orderedDistrictIds.includes(activeRunDistrictId);
       const suggestedDistrictId =
+        (hasValidActiveRunDistrict ? activeRunDistrictId : null) ||
         orderedDistrictIds.find((districtId) => unlocked.has(districtId) && !(mapProgress?.districts?.[districtId]?.p1?.completed)) ||
         [...orderedDistrictIds].reverse().find((districtId) => unlocked.has(districtId)) ||
         firstDistrictId ||
         null;
-      const activeRun = mapProgress?.activeRun || null;
-      const activeRunDistrictId = activeRun?.districtId || null;
       const activeRunDistrictName = activeRunDistrictId ? (districts.find((t) => t.id === activeRunDistrictId)?.name || activeRunDistrictId) : null;
       const activeRunActNumber = Number.isFinite(activeRun?.resumeLocalBattleNumber) ? activeRun.resumeLocalBattleNumber : null;
       const activeRunCongregation = Number.isFinite(activeRun?.startCount) ? activeRun.startCount : null;

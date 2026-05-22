@@ -413,13 +413,16 @@ const GRACE_BOSS_DEATH_RAIN_INTERVAL_ACTIVE = _gb('grace.bossDeathRainIntervalAc
 const GRACE_BOSS_DEATH_RAIN_INITIAL_DELAY = _gb('grace.bossDeathRainInitialDelay', 0.08);
 const GRACE_RUSH_DURATION = _gb('grace.rushDuration', 8);
 const GRACE_BONUS_MULTIPLIER = _gb('grace.bonusMultiplier', 5);
-const POST_DEATH_HANG = 5;
+const POST_DEATH_ANIM_LEAD = 2;
+const POST_DEATH_HANG = 0;
 const ARENA_FADE_DURATION = 2;
 let postDeathSequenceActive = false;
+let postDeathAnimLeadActive = false;
 let pendingExteriorShotAfterVisitor = false;
 let pendingBossIntroAfterExterior = false;
 let mapAmbientFadeQueued = false;
 let postDeathTimer = 0;
+let postDeathAnimLeadTimer = 0;
 let miniImpWaveDispatched = false;
 let arenaFadeTimer = 0;
 let arenaFadeAlpha = 0;
@@ -6074,6 +6077,8 @@ function activateDevMeleeArenaMode() {
   paused = false;
   gameOver = false;
   postDeathSequenceActive = false;
+  postDeathAnimLeadActive = false;
+  postDeathAnimLeadTimer = 0;
   pendingDistrictIntroStart = false;
   suppressInitialAnnouncements = false;
   if (Array.isArray(levelAnnouncements)) levelAnnouncements.length = 0;
@@ -6248,6 +6253,8 @@ function returnFromDevPlaytestToEditor() {
   titleScreenActive = false;
   gameOver = false;
   postDeathSequenceActive = false;
+  postDeathAnimLeadActive = false;
+  postDeathAnimLeadTimer = 0;
   if (typeof stopBattleMusicFast === "function") {
     stopBattleMusicFast();
   }
@@ -6333,10 +6340,7 @@ window.consumePauseAction = () => {
 window.isMissionBriefOverlayActive = false;
 window.isPauseOverlayActive = false;
 window.MovesList = { isOpen: false };
-window.shouldShowGameOverMessage = false;
 window.gameOverReady = false;
-window.gameOverDialogShown = false;
-window.gameOverDialogActive = false;
 window.gameOverReady = false;
 window.postDeathSequenceActive = false;
 if (typeof window !== "undefined") {
@@ -9714,6 +9718,35 @@ function returnToMapFromPause() {
   }
 }
 
+function returnToMapFromGameOver() {
+  paused = false;
+  gameOver = false;
+  gameStarted = false;
+  titleScreenActive = false;
+  mapActive = true;
+  pendingBossIntroAfterExterior = false;
+  districtVisitorMinigamePlayed = false;
+  window.isPauseOverlayActive = false;
+  pauseRestartConfirmActive = false;
+  postDeathSequenceActive = false;
+  postDeathAnimLeadActive = false;
+  postDeathAnimLeadTimer = 0;
+  postDeathTimer = 0;
+  miniImpWaveDispatched = false;
+  arenaFadeTimer = 0;
+  arenaFadeAlpha = 0;
+  try {
+    if (Array.isArray(levelAnnouncements)) levelAnnouncements.length = 0;
+  } catch (e) {}
+  if (levelManager?.reset) levelManager.reset();
+  if (window.MapScreen) {
+    if (activeDistrictId) {
+      window.MapScreen.selectDistrict(activeDistrictId);
+    }
+    window.MapScreen.open();
+  }
+}
+
 async function seedDemoSlotProgress(slot) {
   if (!slot || !slot.districtId) return;
   const mapScreen = typeof window !== "undefined" ? window.MapScreen : null;
@@ -10354,11 +10387,6 @@ const PAUSE_HOTKEYS_HTML = `
   <div class="pause-hotkeys__note">Press Continue or Space to resume.</div>
 `;
 
-const GAME_OVER_BODY =
-  uiTexts.gameOver?.body ||
-  "You have no strength to continue the battle.\nThe church plant and the town are lost to darkness.";
-
-
 function resumeFromPause() {
   pauseDialogActive = false;
   pauseRestartConfirmActive = false;
@@ -10389,24 +10417,6 @@ function showPauseDialog() {
     devLabel: "",
     onContinue: () => {
       resumeFromPause();
-    },
-  });
-}
-
-function showGameOverDialog() {
-  if (!window.DialogOverlay || window.gameOverDialogShown) return;
-  window.gameOverDialogShown = true;
-  window.gameOverDialogActive = true;
-    window.DialogOverlay.show({
-      title: "Game Over",
-      body: GAME_OVER_BODY,
-      buttonText: "Restart (Space)",
-      variant: "gameover",
-      devLabel: "",
-      onContinue: () => {
-      window.gameOverDialogActive = false;
-      window.gameOverDialogShown = false;
-      restartGame();
     },
   });
 }
@@ -21353,6 +21363,21 @@ function checkDialogOverlays() {
 }
 
 function updatePostDeathSequence(dt) {
+  if (postDeathAnimLeadActive) {
+    postDeathAnimLeadTimer = Math.max(0, postDeathAnimLeadTimer - dt);
+    if (postDeathAnimLeadTimer <= 0) {
+      postDeathAnimLeadActive = false;
+      postDeathSequenceActive = true;
+      postDeathTimer = POST_DEATH_HANG;
+      miniImpWaveDispatched = false;
+      arenaFadeTimer = -1;
+      arenaFadeAlpha = 0;
+      if (player) {
+        player.lockedPosition = { x: player.x, y: player.y };
+      }
+      console.log("Death animation lead complete; starting post-death transition");
+    }
+  }
   if (postDeathSequenceActive) {
     postDeathTimer = Math.max(0, postDeathTimer - dt);
     if (postDeathTimer <= 0 && !miniImpWaveDispatched) {
@@ -21370,11 +21395,9 @@ function updatePostDeathSequence(dt) {
         arenaFadeAlpha = 1;
         postDeathSequenceActive = false;
         gameOver = true;
-        window.shouldShowGameOverMessage = true;
         window.gameOverReady = true;
         damageHitFlash = 0;
         console.log("Arena fade complete, gameOver ready");
-        showGameOverDialog();
       }
     }
   } else {
@@ -30002,7 +30025,21 @@ function updateGame(dt) {
 
   if (gameOver) {
     player.animator.update(dt);
-    if (wasActionJustPressed("restart")) restartGame();
+    const buttons =
+      typeof window !== "undefined" && window.__announcementButtons?.key === "gameOver"
+        ? window.__announcementButtons.buttons
+        : null;
+    handleAnnouncementButtons({
+      key: "gameOver",
+      buttons,
+      allowSpace: true,
+      onActivate: () => {
+        if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
+          window.playMenuAdvanceSfx(0.6);
+        }
+        returnToMapFromGameOver();
+      },
+    });
     return;
   }
 
@@ -30261,13 +30298,14 @@ function onPlayerDeath() {
   playerRespawnPending = false;
   respawnTimer = 0;
   respawnIndicatorTimer = 0;
-  postDeathSequenceActive = true;
-  postDeathTimer = POST_DEATH_HANG;
+  postDeathAnimLeadActive = true;
+  postDeathAnimLeadTimer = POST_DEATH_ANIM_LEAD;
+  postDeathSequenceActive = false;
+  postDeathTimer = 0;
   miniImpWaveDispatched = false;
   arenaFadeTimer = -1;
   arenaFadeAlpha = 0;
-  window.shouldShowGameOverMessage = false;
-  console.log("Death sequence triggered: hang", POST_DEATH_HANG);
+  console.log("Death sequence triggered: lead", POST_DEATH_ANIM_LEAD);
   if (player) {
     player.lockedPosition = { x: player.x, y: player.y };
   }
@@ -30337,6 +30375,8 @@ function restartGame() {
   respawnTimer = 0;
   respawnIndicatorTimer = 0;
   postDeathSequenceActive = false;
+  postDeathAnimLeadActive = false;
+  postDeathAnimLeadTimer = 0;
   postDeathTimer = 0;
   miniImpWaveDispatched = false;
   arenaFadeTimer = 0;

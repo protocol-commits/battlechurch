@@ -45,6 +45,7 @@
     walk: { page: "p1", framesByFacing: [[32, 33, 34, 35, 36, 37], [40, 41, 42, 43, 44, 45], [48, 49, 50, 51, 52, 53], [56, 57, 58, 59, 60, 61]], timingMs: [135, 135, 135, 135, 135, 135] },
     run: { page: "p1", framesByFacing: [[32, 33, 38, 35, 36, 39], [40, 41, 46, 43, 44, 47], [48, 49, 54, 51, 52, 55], [56, 57, 62, 59, 60, 63]], timingMs: [80, 55, 125, 80, 55, 125] },
     draw_sheath: { page: "pONE1", framesByFacing: [[0, 1, 2], [8, 9, 10], [16, 17, 18], [24, 25, 26]], timingMs: [160, 120, 180], oneShot: true },
+    knockdown: { page: "pONE1", framesByFacing: [[5, 6, 7], [13, 14, 15], [21, 22, 23], [29, 30, 31]], timingMs: [120, 120, 220], oneShot: true },
     combat_idle: { page: "pONE2", framesByFacing: [[0, 1, 2, 3], [8, 9, 10, 11], [16, 17, 18, 19], [24, 25, 26, 27]], timingMs: [200, 200, 200, 200] },
     combat_move: { page: "pONE2", framesByFacing: [[4, 5], [12, 13], [20, 21], [28, 29]], timingMs: [140, 140] },
     slash_1: { page: "pONE3", framesByFacing: [[0, 1, 2, 3], [8, 9, 10, 11], [16, 17, 18, 19], [24, 25, 26, 27]], timingMs: [160, 65, 65, 200], oneShot: true },
@@ -251,6 +252,7 @@
     const actionMap = {
       idle: "idle",
       run: "run",
+      death: "death",
       cleave: "SlashUp",
       normalSlash: "SlashDown",
       slashBash: "SlashBash",
@@ -262,6 +264,10 @@
       thrust: "thrust",
       fallback: "SlashDown",
     };
+
+    if (player?.state === "death") {
+      return actionMap.death;
+    }
 
     const hitboxType = String(melee.currentAttackHitboxType || "").toLowerCase();
     const comboNames = Array.isArray(melee.comboMoveNames)
@@ -481,6 +487,7 @@
     const actionMap = cfg.animationPresetMap || {};
     const mappedName = getMapValueCaseInsensitive(actionMap, desiredName) || desiredName;
     const aliasNames = {
+      death: ["death", "die", "dead", "deathpose", "deathanim"],
       thrust: ["thrust", "thust"],
       slashdown: ["slashdown", "slash_down", "slash2"],
       slashup: ["slashup", "slash_up", "slash1"],
@@ -919,7 +926,9 @@
         ? Number(preset.playbackSpeed)
         : 1;
     const presetLoopEnabled =
-      typeof preset?.loop === "boolean" ? preset.loop : !animDef.oneShot;
+      player?.state === "death"
+        ? false
+        : (typeof preset?.loop === "boolean" ? preset.loop : !animDef.oneShot);
     pd.elapsedMs += Math.max(0, dt) * 1000 * playbackSpeed;
     const timing = animDef.timingMs[Math.min(pd.frameCursor, animDef.timingMs.length - 1)] || 120;
     if (pd.elapsedMs >= timing) {
@@ -2064,6 +2073,10 @@
       this.hpDamageFlash.timer = Math.max(0, this.hpDamageFlash.timer - dt);
     }
       if (this.state === "death") {
+        // Death still needs paperdoll state advancement so one-shot knockdown
+        // can complete before it holds on the final frame.
+        this._paperdollMoving = false;
+        updatePastorPaperdollState(this, dt);
         this.animator.update(dt);
         if (typeof this.deathTimer === "number") {
           this.deathTimer -= dt;
