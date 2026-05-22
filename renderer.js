@@ -8298,7 +8298,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.fillStyle = '#DFDFC4';
     const lines = [
       'Move with WASD, aim with arrow keys or mouse.',
-      'Prayer Meter holds 6 Prayers: Purge costs 2, Smite costs 6.',
+      'Prayer Meter holds 6 Prayers: Purge costs 2, Prayer Storm costs 6.',
       'Protect the congregation and survive the waves.',
     ];
     let y = HUD_HEIGHT + 110;

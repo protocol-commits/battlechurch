@@ -543,7 +543,7 @@
 
     const drawPrayerBombMeter = () => {
       // FONT MAP (left/bottom HUD - prayer + scoreboard row):
-      // 15px = "Prayer" / "Smite Ready" text inside prayer meter.
+      // 15px = "Prayer" / "Prayer Storm Ready" text inside prayer meter.
       // 15px = grace/enemies/damage/max-chain numbers under the meter.
       if (!player) return;
       const meterX = columnXs[0] + 6;
@@ -725,7 +725,7 @@
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         if (fullPrayerReady) {
-          const readyText = "Smite Ready";
+          const readyText = "Prayer Storm Ready";
           const flashPulse = 0.5 + 0.5 * Math.sin(performance.now() * 0.012);
           ctx.save();
           ctx.font = hudFont(HUD_FONTS.meterLabel);

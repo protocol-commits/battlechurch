@@ -27382,6 +27382,7 @@ const MOVE_BANNER_TOKENS = Object.freeze({
   Cleave:          [_MB.btn("A"), _MB.sim(), _MB.btn("B")],
   "Unity Strike":  [_MB.btn("C")],
   "Pastor Protect":[_MB.btn("C"), _MB.seq(), _MB.btn("C")],
+  "Prayer Storm":  [_MB.chg(), _MB.btn("A"), _MB.sim(), _MB.btn("B"), _MB.sim(), _MB.btn("C")],
   // Purify is the unified player-facing label for Charged-C prayer actions.
   "Purify":        [_MB.chg(), _MB.btn("C")],
   "Purge":         [_MB.chg(), _MB.btn("C")],
@@ -28385,7 +28386,7 @@ function updateChargeState(dt, meleeAttackState) {
     meleeAttackState.abcSmitePendingRelease,
   );
   const readyMove = abcReady
-    ? "Smite"
+    ? "Prayer Storm"
     : abReady
       ? "Thrash"
       : acReady
@@ -29039,8 +29040,8 @@ function updateMeleeAttackSystem(dt) {
       meleeAttackState.abcSmitePendingRelease = false;
       if (casted) {
         meleeAttackState.abcSmiteLatch = false;
-        window.FloatingText?.heroSay?.("Smite");
-        window.showMoveBanner?.("Smite");
+        window.FloatingText?.heroSay?.("Prayer Storm");
+        window.showMoveBanner?.("Prayer Storm");
         meleeAttackState.buttonDown = false;
         meleeAttackState.isCharging = false;
         meleeAttackState.chargeTimer = 0;
