@@ -753,10 +753,7 @@
       Boolean(dashState?.crashDashActive) ||
       Boolean(dashState?.isHolyDash) ||
       Boolean(melee?.clashVisualActive) ||
-      (Boolean(dashState?.isDashing) && Boolean(dashState?.isHolyDash)) ||
-      hitboxType === "rush" ||
-      hitboxType === "swordrush" ||
-      hitboxType === "dashslash";
+      (Boolean(dashState?.isDashing) && Boolean(dashState?.isHolyDash));
     const movingDuringRush =
       Boolean(melee?.isRushing) ||
       Boolean(melee?.swordRushActive) ||
