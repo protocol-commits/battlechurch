@@ -8948,6 +8948,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       window.__announcementButtons = { key: "pause", buttons: bounds };
       if (pointerState && typeof pointerState.x === "number" && typeof pointerState.y === "number") {
         const px = pointerState.x, py = pointerState.y;
+        if (window.__pauseIgnoreInitialHover === true) {
+          _pauseHoverX = px;
+          _pauseHoverY = py;
+          _pauseHoverIndex = -1;
+          window.__pauseIgnoreInitialHover = false;
+        }
         const pointerMoved = px !== _pauseHoverX || py !== _pauseHoverY;
         if (pointerMoved) {
           _pauseHoverX = px;

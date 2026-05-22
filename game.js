@@ -23482,6 +23482,7 @@ function handlePauseMenu() {
       window.isPauseOverlayActive = true;
       pauseRestartConfirmActive = false;
       window.__announcementFocus = { key: "pause", index: 0 };
+      window.__pauseIgnoreInitialHover = true;
       // Pick a random tip each time pause opens
       if (Array.isArray(window.BattlechurchTips) && window.BattlechurchTips.length > 0) {
         window._pauseTipIndex = Math.floor(Math.random() * window.BattlechurchTips.length);
