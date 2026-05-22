@@ -10652,7 +10652,8 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   const battleEnemiesDefeated = Number.isFinite(summary?.battleEnemiesDefeated) ? Math.max(0, summary.battleEnemiesDefeated) : 0;
   const battleDamageDealt = Number.isFinite(summary?.battleDamageDealt) ? Math.max(0, summary.battleDamageDealt) : 0;
   const enemiesKilledPerformanceValue = Math.floor(battleEnemiesDefeated / 1000) * 100;
-  const damageDealtPerformanceValue = Math.floor(battleDamageDealt / 10000) * 100;
+  // Damage bonus tuning: doubled divisor halves recap/performance contribution.
+  const damageDealtPerformanceValue = Math.floor(battleDamageDealt / 20000) * 100;
   const performancePointTotal =
     perfectProtectionValue +
     pastorHealthValue +
