@@ -103,6 +103,7 @@
     arcMaxPx: 108,                 // Maximum arc bend amount for curved routes.
     fadeOutDistancePx: 30,         // Start fading out when this close to the target district.
     spawnScaleInMs: 230,           // Time for icon to scale from 0 to full size at spawn.
+    spawnFadeInMs: 1500,            // Time for icon alpha to fade from 0 to full at spawn.
     scatterRadiusMinPx: 12,        // Minimum initial radial scatter distance from hellmouth.
     scatterRadiusMaxPx: 34,        // Maximum initial radial scatter distance from hellmouth.
     scatterDurationMs: 190,        // How long the initial scatter motion lasts.
@@ -118,9 +119,9 @@
   const MAP_HELLMOUTH_FLAME_SPRITE_ROOT = "./assets/sprites/items/fire";
   // Easy tweak point: edit offsets/scale/sheet here to reposition flames around the hellmouth.
   const MAP_HELLMOUTH_FLAMES = [
-    { sheet: "Group 5 - 3.png", offsetX: -90, offsetY: 30, scale: 3.95, alpha: 0.42, phaseOffset: 0.0 },
-    { sheet: "Group 4 - 1.png", offsetX:  70, offsetY: -20, scale: 3.56, alpha: 0.38, phaseOffset: 0.17 },
-    { sheet: "Group 4 - 3.png", offsetX: -20, offsetY: 50, scale: 3.82, alpha: 0.34, phaseOffset: 0.33 },
+    { sheet: "Group 5 - 3.png", offsetX: -90, offsetY: 20, scale: 3.95, alpha: 0.42, phaseOffset: 0.0 },
+    { sheet: "Group 4 - 1.png", offsetX:  30, offsetY: -20, scale: 3.56, alpha: 0.58, phaseOffset: 0.17 },
+    { sheet: "Group 4 - 3.png", offsetX: -20, offsetY: 0, scale: 3.82, alpha: 0.34, phaseOffset: 0.33 },
   ];
 
   function readMapScreenRenderStyleNumber(key, fallback) {
@@ -912,7 +913,7 @@
     return getDistrictPosition(capital, rect);
   }
 
-  function createHellmouthInvasionEntity(rect, progress) {
+  function createHellmouthInvasionEntity(rect, progress, spawnedAtMs = null) {
     const cfg = MAP_HELLMOUTH_INVASION;
     const origin = getHellmouthOriginPoint(rect);
     if (!origin) return null;
@@ -958,6 +959,10 @@
       travelDuration,
       scatterDuration: cfg.scatterDurationMs / 1000,
       spawnScaleDuration: cfg.spawnScaleInMs / 1000,
+      spawnFadeInDuration: cfg.spawnFadeInMs / 1000,
+      spawnedAtMs: Number.isFinite(spawnedAtMs)
+        ? spawnedAtMs
+        : (typeof performance !== "undefined" ? performance.now() : Date.now()),
       timer: 0,
       scatterX,
       scatterY,
@@ -1033,10 +1038,23 @@
       }
       const spawnT = Math.max(0, Math.min(1, entity.timer / Math.max(0.01, entity.spawnScaleDuration)));
       entity.scale = spawnT;
+      const spawnNowMs = typeof performance !== "undefined" ? performance.now() : Date.now();
+      const spawnAgeSec = Math.max(
+        0,
+        (spawnNowMs - (Number.isFinite(entity.spawnedAtMs) ? entity.spawnedAtMs : spawnNowMs)) / 1000,
+      );
+      const spawnAlphaT = Math.max(
+        0,
+        Math.min(1, spawnAgeSec / Math.max(0.01, entity.spawnFadeInDuration || 0.5)),
+      );
       const remaining = Math.hypot(entity.targetX - entity.x, entity.targetY - entity.y);
       const fadeT = Math.max(0, Math.min(1, remaining / Math.max(1, entity.fadeOutDistance)));
-      entity.alpha = Math.max(0, Math.min(1, fadeT));
-      if (entity.progress >= 1 || remaining <= 2 || entity.alpha <= 0.001) {
+      const safeFadeT = Number.isFinite(fadeT) ? fadeT : 0;
+      const safeSpawnAlphaT = Number.isFinite(spawnAlphaT) ? spawnAlphaT : 0;
+      // Ease in more noticeably so fresh spawns are visually "born" from the hellmouth.
+      const easedSpawnAlpha = safeSpawnAlphaT * safeSpawnAlphaT;
+      entity.alpha = Math.max(0, Math.min(1, safeFadeT * easedSpawnAlpha));
+      if (entity.progress >= 1 || remaining <= 2) {
         invasion.entities.splice(i, 1);
       }
     }
@@ -1049,7 +1067,7 @@
         invasion.clusterRemaining =
           Math.floor(cfg.clusterMin + Math.random() * Math.max(1, cfg.clusterMax - cfg.clusterMin + 1));
       }
-      const entity = createHellmouthInvasionEntity(mapRect, progress);
+      const entity = createHellmouthInvasionEntity(mapRect, progress, nowMs);
       if (!entity) {
         invasion.nextSpawnAtMs = nowMs + 800;
         break;
@@ -1075,7 +1093,16 @@
     if (globalAlpha <= 0.001) return;
     for (const entity of invasion.entities) {
       if (!entity?.animator?.currentClip) continue;
-      const drawAlpha = Math.max(0, Math.min(1, entity.alpha * globalAlpha * cfg.alpha));
+      const rawEntityAlpha = Number.isFinite(entity.alpha) ? entity.alpha : 0;
+      const spawnFadeDuration = Math.max(0.01, Number(entity.spawnFadeInDuration) || 0.5);
+      const nowMs = typeof performance !== "undefined" ? performance.now() : Date.now();
+      const spawnAgeSec = Math.max(
+        0,
+        (nowMs - (Number.isFinite(entity.spawnedAtMs) ? entity.spawnedAtMs : nowMs)) / 1000,
+      );
+      const spawnFadeT = Math.max(0, Math.min(1, spawnAgeSec / spawnFadeDuration));
+      const spawnFadeDrawGate = spawnFadeT * spawnFadeT;
+      const drawAlpha = Math.max(0, Math.min(1, rawEntityAlpha * spawnFadeDrawGate * globalAlpha * cfg.alpha));
       if (drawAlpha <= 0.001) continue;
       const clip = entity.animator.currentClip;
       const baseSize = Math.max(1, clip.frameWidth || 1, clip.frameHeight || 1);
