@@ -110,9 +110,17 @@
     weightP1Uncleared: 4.5,        // Target weight for districts not yet cleared on P1 (higher = picked more).
     weightP2FrontUnfortified: 1.4, // Target weight for P2-eligible pressure when the front is not fully fortified.
     weightFallback: 0.4,           // Low fallback target weight for other non-fortified districts.
+    frontlineProximityMinMult: 0.45, // Furthest districts still get some chance (keeps spread).
+    frontlineProximityMaxMult: 2.35, // Nearest districts to player frontline are strongly favored.
+    frontlineSameFrontMult: 1.35,    // Extra weight when target is in the same front as next unbeaten district.
     alpha: 0.9,                    // Overall opacity multiplier for all demon march icons.
     blurPx: 0.7,                   // Small blur amount to soften icon edges slightly.
     iconScale: 4.75,               // Base visual size of marching demon icons.
+    preSpawnMin: 18,               // Minimum invasion demons already in-flight when map first opens.
+    preSpawnMax: 32,               // Maximum invasion demons already in-flight when map first opens.
+    preSpawnProgressMin: 0.08,     // Minimum travel progress for seeded in-flight demons.
+    preSpawnProgressMax: 0.92,     // Maximum travel progress for seeded in-flight demons.
+    preSpawnFrontlineFocusChance: 0.82, // Chance a seeded demon is explicitly routed toward frontline destination.
   });
   const MAP_HELLMOUTH_FLAME_FRAME_COUNT = 14;
   const MAP_HELLMOUTH_FLAME_FRAME_DURATION = 0.07;
@@ -874,12 +882,25 @@
     return frontDistricts.every((district) => isDistrictFullyFortified(district.id, progress));
   }
 
+  function getFrontlineAnchorDistrict(progress, mapData) {
+    if (!progress || !mapData?.districts?.length) return null;
+    return mapData.districts.find(
+      (district) =>
+        district &&
+        district.id &&
+        district.type !== "capital" &&
+        progress.districts?.[district.id]?.p1?.completed !== true,
+    ) || null;
+  }
+
   function pickHellmouthInvasionTarget(progress) {
     const mapData = window.BattlechurchMapData;
     if (!progress || !mapData?.districts?.length) return null;
     const cfg = MAP_HELLMOUTH_INVASION;
+    const frontlineAnchor = getFrontlineAnchorDistrict(progress, mapData);
     const candidates = [];
     let totalWeight = 0;
+    const maxMapDistance = Math.sqrt(2); // District coordinates are normalized [0,1].
     for (const district of mapData.districts) {
       if (!district || !district.id || district.type === "capital") continue;
       if (isDistrictFullyFortified(district.id, progress)) continue;
@@ -892,6 +913,19 @@
         weight = cfg.weightP1Uncleared;
       } else if (!p2Done && frontUnfortified) {
         weight = cfg.weightP2FrontUnfortified;
+      }
+      if (frontlineAnchor) {
+        const dx = (Number(district.x) || 0) - (Number(frontlineAnchor.x) || 0);
+        const dy = (Number(district.y) || 0) - (Number(frontlineAnchor.y) || 0);
+        const dist = Math.hypot(dx, dy);
+        const proximity = 1 - Math.max(0, Math.min(1, dist / maxMapDistance));
+        const proxMin = Math.max(0.05, Number(cfg.frontlineProximityMinMult) || 0.45);
+        const proxMax = Math.max(proxMin, Number(cfg.frontlineProximityMaxMult) || 2.35);
+        const proximityMult = proxMin + (proxMax - proxMin) * proximity;
+        weight *= proximityMult;
+        if (district.frontId && frontlineAnchor.frontId && district.frontId === frontlineAnchor.frontId) {
+          weight *= Math.max(1, Number(cfg.frontlineSameFrontMult) || 1.35);
+        }
       }
       if (weight <= 0) continue;
       totalWeight += weight;
@@ -978,6 +1012,70 @@
     };
   }
 
+  function createHellmouthInvasionEntityWithTarget(rect, targetDistrict, spawnedAtMs = null) {
+    const cfg = MAP_HELLMOUTH_INVASION;
+    if (!rect || !targetDistrict?.id) return null;
+    const origin = getHellmouthOriginPoint(rect);
+    if (!origin) return null;
+    const target = getDistrictPosition(targetDistrict, rect);
+    if (!target) return null;
+    const clipPool = getHellmouthInvasionClipPool();
+    if (!clipPool.length) return null;
+    const clipChoice = clipPool[Math.floor(Math.random() * clipPool.length)];
+    const Animator = window.Entities?.Animator || null;
+    if (!Animator || !clipChoice?.clips) return null;
+    const animator = new Animator(clipChoice.clips, 1);
+    animator.play("walk", { restart: true, loop: true });
+    const scatterRadius =
+      cfg.scatterRadiusMinPx + Math.random() * Math.max(0.1, cfg.scatterRadiusMaxPx - cfg.scatterRadiusMinPx);
+    const scatterAngle = Math.random() * Math.PI * 2;
+    const scatterX = origin.x + Math.cos(scatterAngle) * scatterRadius;
+    const scatterY = origin.y + Math.sin(scatterAngle) * scatterRadius;
+    const dx = target.x - scatterX;
+    const dy = target.y - scatterY;
+    const distance = Math.max(1, Math.hypot(dx, dy));
+    const normalX = -dy / distance;
+    const normalY = dx / distance;
+    const arcMag = cfg.arcMinPx + Math.random() * Math.max(0.1, cfg.arcMaxPx - cfg.arcMinPx);
+    const arcSign = Math.random() < 0.5 ? -1 : 1;
+    const control = {
+      x: (scatterX + target.x) * 0.5 + normalX * arcMag * arcSign,
+      y: (scatterY + target.y) * 0.5 + normalY * arcMag * arcSign,
+    };
+    const speed = cfg.speedMin + Math.random() * Math.max(0.1, cfg.speedMax - cfg.speedMin);
+    const travelDistance = Math.max(1, distance - cfg.fadeOutDistancePx);
+    const travelDuration = travelDistance / Math.max(1, speed);
+    return {
+      originX: origin.x,
+      originY: origin.y,
+      x: origin.x,
+      y: origin.y,
+      alpha: 0,
+      scale: 0,
+      progress: 0,
+      traveled: 0,
+      travelDuration,
+      scatterDuration: cfg.scatterDurationMs / 1000,
+      spawnScaleDuration: cfg.spawnScaleInMs / 1000,
+      spawnFadeInDuration: cfg.spawnFadeInMs / 1000,
+      spawnedAtMs: Number.isFinite(spawnedAtMs)
+        ? spawnedAtMs
+        : (typeof performance !== "undefined" ? performance.now() : Date.now()),
+      timer: 0,
+      scatterX,
+      scatterY,
+      targetX: target.x,
+      targetY: target.y,
+      controlX: control.x,
+      controlY: control.y,
+      targetDistrictId: targetDistrict.id,
+      fadeOutDistance: cfg.fadeOutDistancePx,
+      totalDistance: distance,
+      animator,
+      flipX: target.x < origin.x,
+    };
+  }
+
   function evaluateQuadraticPoint(t, p0x, p0y, p1x, p1y, p2x, p2y) {
     const u = 1 - t;
     const tt = t * t;
@@ -988,16 +1086,62 @@
     };
   }
 
+  function seedInitialHellmouthInvasionEntities(mapRect, progress, nowMs) {
+    const invasion = state.hellmouthInvasion;
+    const cfg = MAP_HELLMOUTH_INVASION;
+    if (!invasion || !mapRect || !progress) return;
+    if (invasion.entities.length) return;
+    const minCount = Math.max(0, Math.floor(cfg.preSpawnMin || 0));
+    const maxCount = Math.max(minCount, Math.floor(cfg.preSpawnMax || minCount));
+    const count = minCount + Math.floor(Math.random() * Math.max(1, maxCount - minCount + 1));
+    const frontlineAnchor = getFrontlineAnchorDistrict(progress, window.BattlechurchMapData || null);
+    const focusChance = Math.max(0, Math.min(1, Number(cfg.preSpawnFrontlineFocusChance) || 0.82));
+    for (let i = 0; i < count && invasion.entities.length < cfg.maxActive; i += 1) {
+      const shouldFocusFrontline = Boolean(frontlineAnchor) && Math.random() < focusChance;
+      const entity = shouldFocusFrontline
+        ? createHellmouthInvasionEntityWithTarget(mapRect, frontlineAnchor, nowMs)
+        : createHellmouthInvasionEntity(mapRect, progress, nowMs);
+      if (!entity) continue;
+      const progressMin = Math.max(0, Math.min(1, Number(cfg.preSpawnProgressMin) || 0.18));
+      const progressMax = Math.max(progressMin, Math.min(1, Number(cfg.preSpawnProgressMax) || 0.78));
+      const seededProgress = progressMin + Math.random() * Math.max(0.001, progressMax - progressMin);
+      entity.timer = entity.scatterDuration + entity.travelDuration * seededProgress;
+      entity.progress = seededProgress;
+      const p = evaluateQuadraticPoint(
+        entity.progress,
+        entity.scatterX,
+        entity.scatterY,
+        entity.controlX,
+        entity.controlY,
+        entity.targetX,
+        entity.targetY,
+      );
+      entity.x = p.x;
+      entity.y = p.y;
+      entity.scale = 1;
+      entity.alpha = 1;
+      // Ensure seeded entities are already fully through fade-in at map-open.
+      entity.spawnedAtMs = nowMs - (((entity.spawnFadeInDuration || 0.5) * 1000) + 250);
+      invasion.entities.push(entity);
+    }
+  }
+
   function updateHellmouthInvasion(dt) {
     const mapRect = state.mapRect;
     const progress = ensureProgress();
     const invasion = state.hellmouthInvasion;
     if (!invasion || !mapRect || !progress) return;
+    // Wait until map bounds are established by draw(); otherwise seeded entities
+    // are initialized with zero-size coordinates and won't appear in-route.
+    if (!Number.isFinite(mapRect.w) || !Number.isFinite(mapRect.h) || mapRect.w <= 1 || mapRect.h <= 1) {
+      return;
+    }
     const nowMs = typeof performance !== "undefined" ? performance.now() : Date.now();
     if (!invasion.initialized) {
       invasion.initialized = true;
       invasion.nextSpawnAtMs = nowMs + 600;
       invasion.clusterRemaining = 0;
+      seedInitialHellmouthInvasionEntities(mapRect, progress, nowMs);
     }
     const dtSec = Math.max(0, Number(dt) || 0);
     for (let i = invasion.entities.length - 1; i >= 0; i -= 1) {
