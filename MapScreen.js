@@ -2396,35 +2396,30 @@
     let primaryLine = "";
     let secondaryLine = "";
     if (district.type === "capital") {
-      primaryLine = `Final ${(typeof window !== "undefined" && window.PHASE_LABEL) || "Mission"}`;
-      secondaryLine = `Score Multiplier: ×${getCapitalScoreMultiplier(progress).toFixed(2)}`;
+      primaryLine = "Primary Mission: Close the Hellmouth";
+      secondaryLine = `Secondary Objective: Score Multiplier ×${getCapitalScoreMultiplier(progress).toFixed(2)}`;
     } else {
-      const nextCamp = progress ? getNextCampaignForDistrict(district.id, progress) : "p1";
-      const _phases = window.BattlechurchCampaignLabels?.phases || {};
-      const campLabel = _phases[nextCamp] || nextCamp.toUpperCase();
-      const campAvail =
-        nextCamp === "p1" ||
-        (nextCamp === "p2" ? isP2UnlockedForDistrict(district.id, progress) : isP3UnlockedForDistrict(district.id, progress));
-      const districtEntry = progress?.districts?.[district.id] || {};
-      const completedVisits = ["p1", "p2", "p3"].reduce(
-        (sum, camp) => sum + (districtEntry?.[camp]?.completed === true ? 1 : 0),
-        0,
-      );
-      primaryLine = `Current ${(typeof window !== "undefined" && window.PHASE_LABEL) || "Mission"}: ${campLabel}${campAvail ? "" : " (Locked)"}`;
-      if (campAvail) {
-        const activeRun = progress?.activeRun;
-        const isInProgress = activeRun?.districtId === district.id && activeRun?.campaign === nextCamp && Number.isFinite(activeRun?.resumeLocalBattleNumber) && activeRun.resumeLocalBattleNumber > 1;
-        if (isInProgress) {
-          secondaryLine = `In Progress: ${(typeof window !== "undefined" && window.STAGE_LABEL) || "Battlefield"} ${activeRun.resumeLocalBattleNumber - 1}/3 done`;
-        } else {
-          secondaryLine = `${(typeof window !== "undefined" && window.STAGE_LABEL) || "Battlefield"}s Completed: ${completedVisits}/3`;
-        }
-      } else if (nextCamp === "p2") {
-        const _unlockDistrictTerm = window.BattlechurchCampaignLabels?.terms?.districts || "districts";
-        secondaryLine = `Complete ${_phases.p1 || "Invasion"} in all ${districtScopeLabel} ${_unlockDistrictTerm.toLowerCase()} to unlock ${_phases.p2 || "Occupation"}.`;
+      const mapData = window.BattlechurchMapData;
+      const orderedFronts = mapData?.getFronts ? mapData.getFronts() : [];
+      const firstFront = orderedFronts[0] || null;
+      const missionOneDone = Boolean(firstFront && isCountyDone(firstFront.id, "p1", progress));
+      const firstUnclearedFrontIndex = orderedFronts.findIndex((frontEntry) => !isCountyDone(frontEntry.id, "p1", progress));
+      const invadeFrontIndex = firstUnclearedFrontIndex >= 0 ? firstUnclearedFrontIndex : orderedFronts.length - 1;
+      const invadeFront = orderedFronts[invadeFrontIndex] || null;
+      const fortifyFront = invadeFrontIndex > 0 ? orderedFronts[invadeFrontIndex - 1] : firstFront;
+
+      if (invadeFront) {
+        primaryLine = `Primary Mission: Invade the ${invadeFront.name}`;
       } else {
-        const _unlockDistrictTerm2 = window.BattlechurchCampaignLabels?.terms?.districts || "districts";
-        secondaryLine = `Complete ${_phases.p2 || "Occupation"} in all ${districtScopeLabel} ${_unlockDistrictTerm2.toLowerCase()} to unlock ${_phases.p3 || "Fortification"}.`;
+        primaryLine = "Primary Mission: Push the Frontline";
+      }
+
+      if (!missionOneDone) {
+        secondaryLine = "Secondary Objective: Locked";
+      } else if (fortifyFront?.name) {
+        secondaryLine = `Secondary Objective: Fortify ${fortifyFront.name} Districts`;
+      } else {
+        secondaryLine = "Secondary Objective: Fortify Districts";
       }
     }
     ctx.fillStyle = panelStyle.primaryColor || MAP_HELLFIRE_TEXT.title;
