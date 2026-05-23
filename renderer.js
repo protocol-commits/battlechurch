@@ -10437,7 +10437,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   }
 
   function drawDevArenaFloorPickerOverlay() {
-    if (typeof window === "undefined" || window.__battlechurchDevMeleeArenaMode !== true) {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const overlayEnabled = Boolean(window.__battlechurchFloorPickerOverlayEnabled);
+    const inDevArena = window.__battlechurchDevMeleeArenaMode === true;
+    if (!inDevArena && !overlayEnabled) {
       if (typeof window !== "undefined") window.__devArenaFloorPickerBounds = null;
       return;
     }
@@ -13360,10 +13365,17 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       : isBossFloorStage
         ? (assets?.backgroundLayers?.floorBoss || assets?.backgroundLayers?.floor || null)
         : (assets?.backgroundLayers?.floor || null);
-    const devArenaFloorOverride =
-      (typeof window !== "undefined" && window.__battlechurchDevMeleeArenaMode === true)
-        ? getDevArenaFloorOverrideImage()
-        : null;
+    const isRegularBattlefieldFloorStage =
+      !isCongregationStage &&
+      !visitorStageActive &&
+      !isBossFloorStage &&
+      !isVictoryFloorTransitionStage &&
+      !isGraceRushFloorStage;
+    const allowManualOverlayPicker =
+      typeof window !== "undefined" &&
+      (window.__battlechurchDevMeleeArenaMode === true || window.__battlechurchFloorPickerOverlayEnabled === true);
+    const shouldUseArenaFloorPool = isRegularBattlefieldFloorStage || allowManualOverlayPicker;
+    const devArenaFloorOverride = shouldUseArenaFloorPool ? getDevArenaFloorOverrideImage() : null;
     const bandImg = devArenaFloorOverride || bandImgBase;
     const victoryTargetFloorImg = assets?.backgroundLayers?.floorVictoryNormal || null;
     const floorBandHeight = bandImg?.height || 200;

@@ -2745,6 +2745,7 @@ const devTools = {
   showNpcZones: false,
   showSpawnDebug: false,
   ambientSmokeEnabled: false,
+  floorPickerOverlay: false,
   disableCameraScroll: true,
   threeLivesMode: loadDevThreeLivesMode(),
   enemyHpBarThreshold: 100,
@@ -2752,6 +2753,9 @@ const devTools = {
   npcFireCooldown: 0.6, // seconds between NPC arrow shots when at full faith
   npcFaithPerEnemy: 0, // faith gained by NPCs per enemy defeated
 };
+if (typeof window !== "undefined") {
+  window.__battlechurchFloorPickerOverlayEnabled = Boolean(devTools.floorPickerOverlay);
+}
 function getConfiguredHeroLives() {
   return devTools.threeLivesMode ? DEV_OVERRIDE_HERO_LIVES : DEFAULT_HERO_LIVES;
 }
@@ -5469,6 +5473,51 @@ const DEV_ARENA_FLOOR_OPTIONS = [
   { key: "floor-A3", label: "Floor A3", src: "assets/backgrounds/floors-arena/floor-A3.png" },
 ];
 let devArenaFloorOptionIndex = 0;
+let devArenaFloorDiscoveryStarted = false;
+let battlefieldFloorSelectionKey = "";
+
+function registerArenaFloorOption(src) {
+  const normalizedSrc = String(src || "").trim();
+  if (!normalizedSrc) return false;
+  const existing = DEV_ARENA_FLOOR_OPTIONS.some(
+    (entry) => String(entry?.src || "").trim().toLowerCase() === normalizedSrc.toLowerCase(),
+  );
+  if (existing) return false;
+  const filename = normalizedSrc.split("/").pop() || normalizedSrc;
+  const baseName = filename.replace(/\.[^.]+$/, "");
+  const label = baseName
+    .replace(/[_-]+/g, " ")
+    .replace(/\b([a-z])/g, (m) => m.toUpperCase());
+  DEV_ARENA_FLOOR_OPTIONS.push({
+    key: baseName.toLowerCase(),
+    label,
+    src: normalizedSrc,
+  });
+  return true;
+}
+
+function discoverArenaFloorOptions() {
+  if (typeof window === "undefined" || typeof fetch !== "function") return;
+  if (devArenaFloorDiscoveryStarted) return;
+  devArenaFloorDiscoveryStarted = true;
+  const dirUrl = "assets/backgrounds/floors-arena/";
+  fetch(dirUrl)
+    .then((res) => (res && res.ok ? res.text() : ""))
+    .then((html) => {
+      if (!html) return;
+      const hrefRegex = /href=["']([^"']+\.png)["']/gi;
+      let match = null;
+      while ((match = hrefRegex.exec(html))) {
+        const href = String(match[1] || "").trim();
+        if (!href) continue;
+        const normalized = href.startsWith("http")
+          ? href
+          : (href.startsWith("/") ? href.slice(1) : `${dirUrl}${href.replace(/^\.?\//, "")}`);
+        registerArenaFloorOption(normalized);
+      }
+    })
+    .catch(() => {});
+}
 
 function getDevArenaFloorPickerState() {
   const options = DEV_ARENA_FLOOR_OPTIONS.slice();
@@ -5492,6 +5541,38 @@ function cycleDevArenaFloorOption(delta = 1) {
   return selected;
 }
 
+function randomizeDevArenaFloorOption() {
+  discoverArenaFloorOptions();
+  const state = getDevArenaFloorPickerState();
+  const count = state.options.length;
+  if (!count) return null;
+  const idx = Math.floor(Math.random() * count);
+  devArenaFloorOptionIndex = idx;
+  return state.options[idx] || null;
+}
+
+function shouldRandomizeBattlefieldFloor(levelStatus) {
+  const stage = String(levelStatus?.stage || "");
+  const battlefieldNum = Number(levelStatus?.battlefieldNum);
+  if (!Number.isFinite(battlefieldNum) || battlefieldNum < 1) return false;
+  // Randomize only for regular battlefield combat flow.
+  return (
+    stage === "waveIntro" ||
+    stage === "waveActive" ||
+    stage === "allKillBreak" ||
+    stage === "waveCleared"
+  );
+}
+
+function updateBattlefieldFloorSelection(levelStatus) {
+  if (!shouldRandomizeBattlefieldFloor(levelStatus)) return;
+  const battlefieldNum = Math.max(1, Math.floor(Number(levelStatus?.battlefieldNum) || 1));
+  const key = `${activeDistrictId || "none"}:${activeCampaign || "p1"}:${battlefieldNum}`;
+  if (key === battlefieldFloorSelectionKey) return;
+  battlefieldFloorSelectionKey = key;
+  randomizeDevArenaFloorOption();
+}
+
 if (typeof window !== "undefined") {
   window.BattlechurchDevArenaFloorPicker = {
     getOptions: () => getDevArenaFloorPickerState().options,
@@ -5499,6 +5580,7 @@ if (typeof window !== "undefined") {
     getSelectedSrc: () => getDevArenaFloorPickerState().selected?.src || null,
     getSelectedLabel: () => getDevArenaFloorPickerState().selected?.label || "",
     cycle: (delta = 1) => cycleDevArenaFloorOption(delta),
+    randomize: () => randomizeDevArenaFloorOption(),
     setByKey: (key) => {
       const normalized = String(key || "").trim().toLowerCase();
       const idx = DEV_ARENA_FLOOR_OPTIONS.findIndex((entry) => String(entry.key || "").toLowerCase() === normalized);
@@ -6114,6 +6196,8 @@ function maintainDevArenaFireKeeper() {
 
 function activateDevMeleeArenaMode() {
   devMeleeArenaMode = true;
+  randomizeDevArenaFloorOption();
+  battlefieldFloorSelectionKey = "";
   resetDevMeleeMoveFeed();
   if (typeof window !== "undefined") {
     window.__battlechurchDevMeleeArenaMode = true;
@@ -9510,6 +9594,8 @@ function startRunForDistrict(districtId) {
   if (typeof window !== "undefined") {
     window.activeDistrictId = activeDistrictId;
   }
+  battlefieldFloorSelectionKey = "";
+  randomizeDevArenaFloorOption();
   // Starting a new district/town should always begin at full pastor health.
   if (player && Number.isFinite(player.maxHealth) && player.maxHealth > 0) {
     player.health = player.maxHealth;
@@ -22003,6 +22089,7 @@ function showDeveloperOverlay() {
           { key: "npcZones", label: "NPC Zones", custom: true },
           { key: "spawnDebug", label: "Spawn Borders", custom: true },
           { key: "ambientSmoke", label: "Red Smoke", custom: true },
+          { key: "floorPicker", label: "Floor Picker Overlay", custom: true },
           { key: "cameraScroll", label: "Camera Scroll", custom: true },
           { key: "typographyLabels", label: "Typography Labels", custom: true },
           { key: "speedrunTimer", label: "Speedrun Timer", custom: true },
@@ -22026,8 +22113,10 @@ function showDeveloperOverlay() {
                   ? Boolean(devTools.showSpawnDebug)
                   : key === "ambientSmoke"
                     ? Boolean(devTools.ambientSmokeEnabled)
-                  : key === "cameraScroll"
-                    ? !Boolean(devTools.disableCameraScroll)
+                    : key === "floorPicker"
+                      ? Boolean(devTools.floorPickerOverlay)
+                    : key === "cameraScroll"
+                      ? !Boolean(devTools.disableCameraScroll)
                     : key === "typographyLabels"
                       ? Boolean(window.UIStyles?.debug?.typographyLabels)
                       : key === "speedrunTimer"
@@ -22046,6 +22135,11 @@ function showDeveloperOverlay() {
                 devTools.showSpawnDebug = !devTools.showSpawnDebug;
               } else if (key === "ambientSmoke") {
                 devTools.ambientSmokeEnabled = !devTools.ambientSmokeEnabled;
+              } else if (key === "floorPicker") {
+                devTools.floorPickerOverlay = !devTools.floorPickerOverlay;
+                if (typeof window !== "undefined") {
+                  window.__battlechurchFloorPickerOverlayEnabled = Boolean(devTools.floorPickerOverlay);
+                }
               } else if (key === "cameraScroll") {
                 devTools.disableCameraScroll = !devTools.disableCameraScroll;
               } else if (key === "typographyLabels") {
@@ -29714,7 +29808,9 @@ function updateArcControlCooldowns() {
 }
 
 function handleDevArenaFloorPickerInput() {
-  if (!isDevMeleeArenaActive() || typeof window === "undefined") return false;
+  if (typeof window === "undefined") return false;
+  const overlayEnabled = Boolean(window.__battlechurchFloorPickerOverlayEnabled);
+  if (!isDevMeleeArenaActive() && !overlayEnabled) return false;
   const picker = window.BattlechurchDevArenaFloorPicker;
   if (!picker) return false;
 
@@ -29802,9 +29898,9 @@ function updateGame(dt) {
     pendingDevMeleeArenaLaunch = false;
     activateDevMeleeArenaMode();
   }
+  handleDevArenaFloorPickerInput();
   if (!player) return;
   if (isDevMeleeArenaActive()) {
-    handleDevArenaFloorPickerInput();
     enforceDevMeleeArenaVitals();
     maintainDevArenaImpHorde();
     maintainDevArenaDemonLord();
@@ -30174,6 +30270,7 @@ function updateGame(dt) {
     levelStatus = levelManager.getStatus ? levelManager.getStatus() : null;
     stage = levelStatus?.stage;
   }
+  updateBattlefieldFloorSelection(levelStatus);
   ensurePlayerPrayerFloorForBattleStart(levelStatus, 2);
 
   updateCongregationWaveIntroDialogue(dt, levelStatus);
