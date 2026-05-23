@@ -7629,6 +7629,18 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.beginPath();
     ctx.arc(actor.x, actor.y, baseRadius, 0, Math.PI * 2);
     ctx.fill();
+    // Draw a crisp ring so visitors are unmistakable even on busy floors.
+    const ringRadius = Math.max(12, baseRadius * 0.72);
+    ctx.lineWidth = Math.max(2, baseRadius * 0.09);
+    ctx.strokeStyle = "rgba(20, 16, 8, 0.72)";
+    ctx.beginPath();
+    ctx.arc(actor.x, actor.y, ringRadius, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.lineWidth = Math.max(2, baseRadius * 0.06);
+    ctx.strokeStyle = `rgba(255, 246, 190, ${Math.max(0.78, alpha)})`;
+    ctx.beginPath();
+    ctx.arc(actor.x, actor.y, ringRadius, 0, Math.PI * 2);
+    ctx.stroke();
     ctx.restore();
   }
 
@@ -13348,7 +13360,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       levelStatus?.stage === "bossBonusTransition";
     const isVictoryFloorTransitionStage = levelStatus?.stage === "victoryCelebrate";
     const isGraceRushFloorStage = levelStatus?.stage === "graceRush";
-    const bandImgBase = isCongregationStage
+    const bandImgBase = visitorStageActive
+      ? (assets?.backgroundLayers?.floorVictoryNormal || assets?.backgroundLayers?.floor || null)
+      : isCongregationStage
       ? (
           congregationRealmMode.spiritActive
             ? (
@@ -13368,9 +13382,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const isRegularBattlefieldFloorStage =
       !isCongregationStage &&
       !visitorStageActive &&
-      !isBossFloorStage &&
-      !isVictoryFloorTransitionStage &&
-      !isGraceRushFloorStage;
+      !isBossFloorStage;
     const allowManualOverlayPicker =
       typeof window !== "undefined" &&
       (window.__battlechurchDevMeleeArenaMode === true || window.__battlechurchFloorPickerOverlayEnabled === true);
