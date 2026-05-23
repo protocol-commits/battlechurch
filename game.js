@@ -5463,6 +5463,51 @@ const DEV_ARENA_PICKUP_EFFECT_DURATION = 3;
 const DEV_ARENA_PLAYER_WEAPON_EFFECT_DURATION = 6;
 const DEV_ARENA_PICKUP_RESPAWN_DELAY = 1.0;
 let devArenaPickupSlots = [];
+const DEV_ARENA_FLOOR_OPTIONS = [
+  { key: "floor-A1", label: "Floor A1", src: "assets/backgrounds/floors-arena/floor-A1.png" },
+  { key: "floor-A2", label: "Floor A2", src: "assets/backgrounds/floors-arena/floor-A2.png" },
+  { key: "floor-A3", label: "Floor A3", src: "assets/backgrounds/floors-arena/floor-A3.png" },
+];
+let devArenaFloorOptionIndex = 0;
+
+function getDevArenaFloorPickerState() {
+  const options = DEV_ARENA_FLOOR_OPTIONS.slice();
+  const count = options.length;
+  if (!count) {
+    return { options: [], index: -1, selected: null };
+  }
+  const safeIndex = ((Math.floor(devArenaFloorOptionIndex) % count) + count) % count;
+  const selected = options[safeIndex] || null;
+  return { options, index: safeIndex, selected };
+}
+
+function cycleDevArenaFloorOption(delta = 1) {
+  const state = getDevArenaFloorPickerState();
+  if (!state.options.length) return null;
+  const count = state.options.length;
+  const step = Number.isFinite(delta) ? Math.trunc(delta) : 1;
+  const next = ((state.index + step) % count + count) % count;
+  devArenaFloorOptionIndex = next;
+  const selected = state.options[next] || null;
+  return selected;
+}
+
+if (typeof window !== "undefined") {
+  window.BattlechurchDevArenaFloorPicker = {
+    getOptions: () => getDevArenaFloorPickerState().options,
+    getSelected: () => getDevArenaFloorPickerState().selected,
+    getSelectedSrc: () => getDevArenaFloorPickerState().selected?.src || null,
+    getSelectedLabel: () => getDevArenaFloorPickerState().selected?.label || "",
+    cycle: (delta = 1) => cycleDevArenaFloorOption(delta),
+    setByKey: (key) => {
+      const normalized = String(key || "").trim().toLowerCase();
+      const idx = DEV_ARENA_FLOOR_OPTIONS.findIndex((entry) => String(entry.key || "").toLowerCase() === normalized);
+      if (idx < 0) return null;
+      devArenaFloorOptionIndex = idx;
+      return DEV_ARENA_FLOOR_OPTIONS[idx];
+    },
+  };
+}
 
 function getDevArenaPickupSlotPositions() {
   const center = getDevMeleeArenaCenter();
@@ -22066,6 +22111,20 @@ function handleTitleScreen() {
     const SCROLL_SPEED = 180;
     if (isActionActive("up")) window.PlayingInstructions.scrollBy(-SCROLL_SPEED * (1 / 60));
     if (isActionActive("down")) window.PlayingInstructions.scrollBy(SCROLL_SPEED * (1 / 60));
+    const floorPicker = window.BattlechurchDevArenaFloorPicker;
+    if (floorPicker) {
+      if (keysJustPressed.has("ArrowLeft") || keysJustPressed.has("a") || keysJustPressed.has("A")) {
+        floorPicker.cycle(-1);
+        keysJustPressed.delete("ArrowLeft");
+        keysJustPressed.delete("a");
+        keysJustPressed.delete("A");
+      } else if (keysJustPressed.has("ArrowRight") || keysJustPressed.has("d") || keysJustPressed.has("D")) {
+        floorPicker.cycle(1);
+        keysJustPressed.delete("ArrowRight");
+        keysJustPressed.delete("d");
+        keysJustPressed.delete("D");
+      }
+    }
     if (keysJustPressed.has("Escape") || keysJustPressed.has("escape") || keysJustPressed.has(" ")) {
       window.PlayingInstructions.close();
       keysJustPressed.delete("Escape");
@@ -23481,6 +23540,20 @@ function handlePauseMenu() {
     const SCROLL_SPEED = 180;
     if (isActionActive("up")) window.PlayingInstructions.scrollBy(-SCROLL_SPEED * (1 / 60));
     if (isActionActive("down")) window.PlayingInstructions.scrollBy(SCROLL_SPEED * (1 / 60));
+    const floorPicker = window.BattlechurchDevArenaFloorPicker;
+    if (floorPicker) {
+      if (keysJustPressed.has("ArrowLeft") || keysJustPressed.has("a") || keysJustPressed.has("A")) {
+        floorPicker.cycle(-1);
+        keysJustPressed.delete("ArrowLeft");
+        keysJustPressed.delete("a");
+        keysJustPressed.delete("A");
+      } else if (keysJustPressed.has("ArrowRight") || keysJustPressed.has("d") || keysJustPressed.has("D")) {
+        floorPicker.cycle(1);
+        keysJustPressed.delete("ArrowRight");
+        keysJustPressed.delete("d");
+        keysJustPressed.delete("D");
+      }
+    }
     if (keysJustPressed.has("Escape") || keysJustPressed.has("escape") || keysJustPressed.has(" ")) {
       window.PlayingInstructions.close();
       keysJustPressed.delete("Escape");
@@ -29640,6 +29713,42 @@ function updateArcControlCooldowns() {
   if (bLabel) bLabel.classList.toggle("is-cooldown", dashCooling);
 }
 
+function handleDevArenaFloorPickerInput() {
+  if (!isDevMeleeArenaActive() || typeof window === "undefined") return false;
+  const picker = window.BattlechurchDevArenaFloorPicker;
+  if (!picker) return false;
+
+  let changed = false;
+  if (keysJustPressed.has("q") || keysJustPressed.has("Q")) {
+    picker.cycle(-1);
+    keysJustPressed.delete("q");
+    keysJustPressed.delete("Q");
+    changed = true;
+  } else if (keysJustPressed.has("e") || keysJustPressed.has("E")) {
+    picker.cycle(1);
+    keysJustPressed.delete("e");
+    keysJustPressed.delete("E");
+    changed = true;
+  }
+
+  const click = Input.consumeCanvasClick?.();
+  const bounds = window.__devArenaFloorPickerBounds;
+  if (click && bounds) {
+    const inside =
+      click.x >= bounds.x &&
+      click.x <= bounds.x + bounds.w &&
+      click.y >= bounds.y &&
+      click.y <= bounds.y + bounds.h;
+    if (inside) {
+      if (click.x < bounds.rightZoneX) picker.cycle(-1);
+      else picker.cycle(1);
+      changed = true;
+    }
+  }
+
+  return changed;
+}
+
 function updateGame(dt) {
   syncDevPlaytestQuickActions();
   if (window.MapScreen?.updateAmbient) {
@@ -29695,6 +29804,7 @@ function updateGame(dt) {
   }
   if (!player) return;
   if (isDevMeleeArenaActive()) {
+    handleDevArenaFloorPickerInput();
     enforceDevMeleeArenaVitals();
     maintainDevArenaImpHorde();
     maintainDevArenaDemonLord();

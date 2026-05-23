@@ -192,6 +192,29 @@ const MELEE_SWING_LENGTH = 260;
     spawnCarry: 0,
     lastNowSec: 0,
   };
+  const devArenaFloorImageCache = new Map();
+  function getDevArenaFloorOverrideImage() {
+    if (typeof window === "undefined") return null;
+    const picker = window.BattlechurchDevArenaFloorPicker;
+    const selectedSrc = picker && typeof picker.getSelectedSrc === "function"
+      ? picker.getSelectedSrc()
+      : null;
+    if (!selectedSrc) return null;
+    let entry = devArenaFloorImageCache.get(selectedSrc);
+    if (!entry) {
+      const img = new Image();
+      entry = { image: img, loaded: false, failed: false };
+      img.onload = () => {
+        entry.loaded = true;
+      };
+      img.onerror = () => {
+        entry.failed = true;
+      };
+      img.src = selectedSrc;
+      devArenaFloorImageCache.set(selectedSrc, entry);
+    }
+    return entry.loaded && !entry.failed ? entry.image : null;
+  }
   const MOBILE_SMOKE_PROFILE = {
     enabled: true,
     maxPuffsCap: 28,
@@ -10413,6 +10436,48 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     // Intentionally left blank to avoid showing developer hints in the HUD.
   }
 
+  function drawDevArenaFloorPickerOverlay() {
+    if (typeof window === "undefined" || window.__battlechurchDevMeleeArenaMode !== true) {
+      if (typeof window !== "undefined") window.__devArenaFloorPickerBounds = null;
+      return;
+    }
+    const picker = window.BattlechurchDevArenaFloorPicker;
+    if (!picker) {
+      window.__devArenaFloorPickerBounds = null;
+      return;
+    }
+    const { ctx, canvas, UI_FONT_FAMILY } = requireBindings();
+    const selectedLabel = picker.getSelectedLabel?.() || "Default";
+    const chipText = `Arena Floor: < ${selectedLabel} >`;
+    const chipFontSize = 15;
+    const chipPadX = 16;
+    const chipPadY = 8;
+    const bottomMargin = 42;
+    ctx.save();
+    ctx.font = `700 ${chipFontSize}px ${UI_FONT_FAMILY}`;
+    const chipW = Math.ceil(ctx.measureText(chipText).width + chipPadX * 2);
+    const chipH = Math.ceil(chipFontSize + chipPadY * 2);
+    const chipX = Math.round(canvas.width / 2 - chipW / 2);
+    const chipY = Math.round(canvas.height - chipH - bottomMargin);
+    ctx.fillStyle = "rgba(14, 10, 10, 0.92)";
+    ctx.strokeStyle = "rgba(255, 214, 148, 0.92)";
+    ctx.lineWidth = 2;
+    roundRect(ctx, chipX, chipY, chipW, chipH, 10, true, true);
+    ctx.fillStyle = "rgba(255, 236, 198, 0.98)";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(chipText, chipX + chipW / 2, chipY + chipH / 2 + 0.5);
+    ctx.restore();
+    window.__devArenaFloorPickerBounds = {
+      x: chipX,
+      y: chipY,
+      w: chipW,
+      h: chipH,
+      leftZoneX: chipX,
+      rightZoneX: chipX + chipW / 2,
+    };
+  }
+
   function drawStartPrompt() {
     const { ctx, canvas, UI_FONT_FAMILY } = requireBindings();
     ctx.save();
@@ -13278,7 +13343,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       levelStatus?.stage === "bossBonusTransition";
     const isVictoryFloorTransitionStage = levelStatus?.stage === "victoryCelebrate";
     const isGraceRushFloorStage = levelStatus?.stage === "graceRush";
-    const bandImg = isCongregationStage
+    const bandImgBase = isCongregationStage
       ? (
           congregationRealmMode.spiritActive
             ? (
@@ -13295,6 +13360,11 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       : isBossFloorStage
         ? (assets?.backgroundLayers?.floorBoss || assets?.backgroundLayers?.floor || null)
         : (assets?.backgroundLayers?.floor || null);
+    const devArenaFloorOverride =
+      (typeof window !== "undefined" && window.__battlechurchDevMeleeArenaMode === true)
+        ? getDevArenaFloorOverrideImage()
+        : null;
+    const bandImg = devArenaFloorOverride || bandImgBase;
     const victoryTargetFloorImg = assets?.backgroundLayers?.floorVictoryNormal || null;
     const floorBandHeight = bandImg?.height || 200;
     if (bandImg) {
@@ -14053,6 +14123,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
 
     drawWaveClearWipe(ctx, canvas, nowMs);
     drawHUD();
+    drawDevArenaFloorPickerOverlay();
     const graceHudFlyEffects = requireBindings().graceHudFlyEffects;
     if (graceHudFlyEffects && graceHudFlyEffects.length) {
       ctx.save();
@@ -15571,8 +15642,33 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.fillStyle = panelStyle.hintColor || "rgba(231,176,102,0.82)";
     ctx.font = `${panelHintType.weight} ${panelStyle.hintFontSize ?? panelHintType.size}px ${UI_FONT_FAMILY}`;
     ctx.textAlign = "center";
-    ctx.fillText(panelStyle.hintText || "W / S to scroll  ·  SPACE or ESC to close", panelX + panelW / 2, panelY + (panelStyle.hintY ?? 66));
+    ctx.fillText(panelStyle.hintText || "W / S scroll  ·  A/D or ←/→ floor  ·  SPACE or ESC close", panelX + panelW / 2, panelY + (panelStyle.hintY ?? 66));
     pushTypographyDebugLabel("caption", panelX + panelW / 2, panelY + (panelStyle.hintY ?? 66));
+
+    // Dev arena floor picker (left/right), anchored at center-bottom of the panel.
+    if (typeof window !== "undefined" && window.BattlechurchDevArenaFloorPicker) {
+      const selectedLabel = window.BattlechurchDevArenaFloorPicker.getSelectedLabel?.() || "Default";
+      const chipText = `Arena Floor: < ${selectedLabel} >`;
+      const chipFontSize = Math.max(13, (panelStyle.hintFontSize ?? panelHintType.size));
+      const chipPadX = 14;
+      const chipPadY = 8;
+      ctx.save();
+      ctx.font = `700 ${chipFontSize}px ${UI_FONT_FAMILY}`;
+      const chipW = Math.ceil(ctx.measureText(chipText).width + chipPadX * 2);
+      const chipH = Math.ceil(chipFontSize + chipPadY * 2);
+      const chipX = Math.round(panelX + panelW / 2 - chipW / 2);
+      const chipY = Math.round(panelY + panelH - chipH - 14);
+      ctx.fillStyle = "rgba(20, 12, 8, 0.96)";
+      ctx.strokeStyle = "rgba(255, 214, 148, 0.9)";
+      ctx.lineWidth = 2;
+      roundRect(ctx, chipX, chipY, chipW, chipH, 10, true, true);
+      ctx.fillStyle = "rgba(255, 234, 192, 0.98)";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(chipText, chipX + chipW / 2, chipY + chipH / 2 + 0.5);
+      pushTypographyDebugLabel("caption", chipX + chipW / 2, chipY + chipH / 2 + 0.5);
+      ctx.restore();
+    }
 
     // Clip content area
     ctx.save();
