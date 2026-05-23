@@ -123,6 +123,8 @@
     preSpawnFrontlineFocusChance: 0.82, // Chance a seeded demon is explicitly routed toward frontline destination.
   });
   const MAP_HELLMOUTH_FLAME_FRAME_COUNT = 14;
+  // Visual preview toggle: only draw the next playable district node instead of all districts.
+  const MAP_SHOW_ONLY_NEXT_DISTRICT = true;
   const MAP_HELLMOUTH_FLAME_FRAME_DURATION = 0.07;
   const MAP_HELLMOUTH_FLAME_SPRITE_ROOT = "./assets/sprites/items/fire";
   // Easy tweak point: edit offsets/scale/sheet here to reposition flames around the hellmouth.
@@ -2197,6 +2199,23 @@
     return ordered;
   }
 
+  function getNextVisibleDistrictId() {
+    const mapData = window.BattlechurchMapData;
+    const progress = ensureProgress();
+    if (!mapData?.districts?.length || !progress) return state.selectedDistrictId;
+    const orderedRegular = mapData.districts.filter(
+      (district) => district && district.id && district.type !== "capital",
+    );
+    const nextRegular = orderedRegular.find((district) => {
+      if (!isDistrictUnlocked(district.id)) return false;
+      return progress.districts?.[district.id]?.p1?.completed !== true;
+    });
+    if (nextRegular?.id) return nextRegular.id;
+    const capital = mapData.districts.find((district) => district && district.type === "capital");
+    if (capital && isDistrictUnlocked(capital.id)) return capital.id;
+    return state.selectedDistrictId;
+  }
+
   function pickNextDistrict(direction) {
     const mapData = window.BattlechurchMapData;
     if (!mapData || !state.selectedDistrictId) return state.selectedDistrictId;
@@ -3693,7 +3712,9 @@
     }
     const mapData = window.BattlechurchMapData;
     if (mapData) {
-      mapData.districts.forEach((district) =>
+      const visibleDistrictId = MAP_SHOW_ONLY_NEXT_DISTRICT ? getNextVisibleDistrictId() : null;
+      mapData.districts.forEach((district) => {
+        if (MAP_SHOW_ONLY_NEXT_DISTRICT && district?.id !== visibleDistrictId) return;
         drawDistrictNode(
           ctx,
           district,
@@ -3703,8 +3724,8 @@
             showDemonIcons: realmState.demon,
             suppressNode: invasionAlpha > 0.001 && district?.type === "capital",
           },
-        ),
-      );
+        );
+      });
     }
     if (invasionAlpha > 0.001) {
       drawHellmouthInvasion(ctx, invasionAlpha);
@@ -3813,18 +3834,22 @@
       .filter((district) => !occupiedSet.has(district.id))
       .map((district) => getDistrictPosition(district, rect))
       .filter((p) => p && Number.isFinite(p.x) && Number.isFinite(p.y));
+    const capitalDistrict = mapData.districts.find((district) => district && district.type === "capital") || null;
+    const capitalPoint = capitalDistrict ? getDistrictPosition(capitalDistrict, rect) : null;
+    const effectiveEnemyPoints =
+      enemyPoints.length > 0
+        ? enemyPoints
+        : (capitalPoint && Number.isFinite(capitalPoint.x) && Number.isFinite(capitalPoint.y) ? [capitalPoint] : []);
+    const singleEnemyPoint = enemyPoints.length === 1 ? enemyPoints[0] : null;
     if (!occupiedPoints.length) return;
     const linePad = 14;
     const topY = rect.y;
     const botY = rect.y + rect.h - linePad;
     const occupiedCount = occupiedPoints.length;
     const lateCampaign = occupiedCount >= 8;
-    let startAnchorY = topY;
-    if (occupiedCount === 8) {
-      startAnchorY = topY + (botY - topY) * 0.45;
-    } else if (occupiedCount >= 9) {
-      startAnchorY = topY + (botY - topY) * 0.54;
-    }
+    // Keep allied territory visible in the upper map even during late campaign.
+    // Lowering this anchor caused the "flat low strip" look for the last districts.
+    const startAnchorY = topY;
     const absMinPad = 100;
     const occPad = 100;
     const enemyPad = 150;
@@ -3837,7 +3862,24 @@
       let x = p.x + occPad;
       let enemyCapX = Infinity;
       let enemyCanOverrideMin = false;
-      for (const e of enemyPoints) {
+      if (singleEnemyPoint) {
+        // Endgame (only one regular district left): shape a smooth arc pocket
+        // around that district instead of a jagged notch/zig-zag.
+        const dy = Math.abs(singleEnemyPoint.y - p.y);
+        const arcInfluenceY = yInfluence * 1.35;
+        if (dy <= arcInfluenceY) {
+          const t = 1 - (dy / arcInfluenceY);
+          // Ease toward the center so the pocket rounds off naturally.
+          const falloff = t * t * (3 - 2 * t);
+          const reach =
+            enemyPad * (0.34 + 0.84 * falloff);
+          const cap = singleEnemyPoint.x - reach;
+          x = Math.min(x, cap);
+          enemyCapX = cap;
+          enemyCanOverrideMin = cap < (p.x + occPad);
+        }
+      } else {
+      for (const e of effectiveEnemyPoints) {
         const dy = Math.abs(e.y - p.y);
         if (dy > yInfluence) continue;
         const friendlyCoversThisEnemy = dy <= friendlyHoldY;
@@ -3847,6 +3889,7 @@
         if (cap < x) x = cap;
         if (cap < enemyCapX) enemyCapX = cap;
         if (cap < (p.x + occPad)) enemyCanOverrideMin = true;
+      }
       }
       x = Math.max(leftBound + 18, Math.min(rightBound, x));
       return {
@@ -3887,9 +3930,44 @@
       p.x = Math.max(p.hardMinX, p.x);
       p.x = Math.max(leftBound + 18, Math.min(rightBound, p.x));
     }
-    const drawFrontierPts = lateCampaign
-      ? frontierPts.filter((p) => p.y >= (startAnchorY - 8))
-      : frontierPts;
+
+    // Smooth local point jitter so late-campaign front lines don't form harsh zig-zags.
+    if (frontierPts.length >= 3) {
+      const smoothedX = frontierPts.map((p) => p.x);
+      for (let i = 1; i < frontierPts.length - 1; i += 1) {
+        smoothedX[i] = (
+          frontierPts[i - 1].x * 0.22 +
+          frontierPts[i].x * 0.56 +
+          frontierPts[i + 1].x * 0.22
+        );
+      }
+      for (let i = 1; i < frontierPts.length - 1; i += 1) {
+        const p = frontierPts[i];
+        p.x = Math.max(leftBound + 18, Math.min(rightBound, smoothedX[i]));
+      }
+    }
+
+    if (singleEnemyPoint) {
+      // Endgame override: one regular district left should look like a rounded
+      // enemy pocket being surrounded, not a jagged zig-zag.
+      const pocketHeight = Math.max(120, enemyPad * 1.25);
+      const pocketDepth = Math.max(120, enemyPad * 1.25);
+      const topArcY = Math.max(topY + 10, singleEnemyPoint.y - pocketHeight);
+      const botArcY = Math.min(botY - 10, singleEnemyPoint.y + pocketHeight);
+      const outerX = Math.max(leftBound + 24, Math.min(rightBound - 6, singleEnemyPoint.x + enemyPad * 0.46));
+      const innerX = Math.max(leftBound + 24, Math.min(rightBound - 18, singleEnemyPoint.x - pocketDepth));
+      const shoulderX = Math.max(leftBound + 24, Math.min(rightBound - 12, singleEnemyPoint.x - pocketDepth * 0.56));
+      frontierPts.length = 0;
+      frontierPts.push(
+        { x: outerX, y: topArcY },
+        { x: shoulderX, y: singleEnemyPoint.y - pocketHeight * 0.52 },
+        { x: innerX, y: singleEnemyPoint.y },
+        { x: shoulderX, y: singleEnemyPoint.y + pocketHeight * 0.52 },
+        { x: outerX, y: botArcY },
+      );
+    }
+
+    const drawFrontierPts = frontierPts;
     if (!drawFrontierPts.length) return;
     const topBulge = {
       x: lateCampaign
@@ -3904,14 +3982,14 @@
       x: Math.max(leftBound, drawFrontierPts[drawFrontierPts.length - 1].x - 234),
       y: bottomAnchorY,
     };
-    const fillColor = "rgba(165, 28, 20, 0.12)";
-    const strokeColor = "rgba(244, 110, 78, 0.92)";
+    const fillColor = "rgba(246, 214, 162, 0.16)";
+    const strokeColor = "rgba(255, 224, 166, 0.96)";
 
     function drawHatch(x0, y0, x1, y1) {
       // Diagonal stripes (top-right to bottom-left / NE→SW) clipped to the current path.
       ctx.save();
       ctx.clip();
-      ctx.strokeStyle = "rgba(220, 80, 50, 0.18)";
+      ctx.strokeStyle = "rgba(255, 218, 150, 0.2)";
       ctx.lineWidth = 2;
       ctx.setLineDash([]);
       ctx.lineDashOffset = 0;
@@ -3934,7 +4012,7 @@
     ctx.lineDashOffset = 0;
     ctx.lineWidth = 5;
     ctx.strokeStyle = strokeColor;
-    ctx.shadowColor = "rgba(255, 70, 45, 0.6)";
+    ctx.shadowColor = "rgba(255, 190, 110, 0.52)";
     ctx.shadowBlur = 10;
     // First foothold: keep occupancy concentrated in the northwest corner,
     // rather than stretching a full vertical strip through the map.
@@ -3971,6 +4049,7 @@
     if (drawFrontierPts.length === 1) {
       const p = drawFrontierPts[0];
       ctx.quadraticCurveTo(p.x, p.y - 28, p.x, p.y);
+      ctx.quadraticCurveTo(p.x + 6, p.y + 26, botBulge.x, botBulge.y);
     } else {
       ctx.quadraticCurveTo(drawFrontierPts[0].x, drawFrontierPts[0].y - 24, drawFrontierPts[0].x, drawFrontierPts[0].y);
       for (let i = 0; i < drawFrontierPts.length - 1; i += 1) {
@@ -3981,9 +4060,8 @@
         ctx.quadraticCurveTo(a.x, a.y, mx, my);
       }
       const last = drawFrontierPts[drawFrontierPts.length - 1];
-      ctx.quadraticCurveTo(last.x, last.y, last.x, last.y);
+      ctx.quadraticCurveTo(last.x, last.y, botBulge.x, botBulge.y);
     }
-    ctx.quadraticCurveTo(botBulge.x + 18, botBulge.y - 20, botBulge.x, botBulge.y);
     ctx.lineTo(leftBound, bottomAnchorY);
     ctx.closePath();
     ctx.fillStyle = fillColor;
@@ -4100,7 +4178,17 @@
       .filter((district) => progress.districts?.[district.id]?.p1?.completed === true)
       .map((district) => district.id);
     const lastCompletedId = completedIds.length ? completedIds[completedIds.length - 1] : null;
-    const targetDistrict = districts.find((district) => progress.districts?.[district.id]?.p1?.completed !== true) || null;
+    let targetDistrict = districts.find(
+      (district) => district.type !== "capital" && progress.districts?.[district.id]?.p1?.completed !== true,
+    ) || null;
+    if (!targetDistrict) {
+      const allRegularCleared = districts
+        .filter((district) => district.type !== "capital")
+        .every((district) => progress.districts?.[district.id]?.p1?.completed === true);
+      if (allRegularCleared) {
+        targetDistrict = districts.find((district) => district.type === "capital") || null;
+      }
+    }
     if (!targetDistrict) return null;
     const to = getDistrictPosition(targetDistrict, rect);
     let from = lastCompletedId
