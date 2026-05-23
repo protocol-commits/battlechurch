@@ -3708,8 +3708,15 @@
     const mapData = window.BattlechurchMapData;
     if (mapData) {
       const visibleDistrictId = MAP_SHOW_ONLY_NEXT_DISTRICT ? getNextVisibleDistrictId() : null;
+      const progress = ensureProgress();
       mapData.districts.forEach((district) => {
-        if (MAP_SHOW_ONLY_NEXT_DISTRICT && district?.id !== visibleDistrictId) return;
+        if (MAP_SHOW_ONLY_NEXT_DISTRICT) {
+          const isCapital = district?.type === "capital";
+          const isNextDistrict = district?.id === visibleDistrictId;
+          const isBeatenDistrict = !isCapital && progress?.districts?.[district?.id]?.p1?.completed === true;
+          // Keep all beaten towns visible so players can review progress, plus the next district target.
+          if (!isNextDistrict && !isBeatenDistrict) return;
+        }
         drawDistrictNode(
           ctx,
           district,
