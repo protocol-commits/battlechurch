@@ -7509,10 +7509,14 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         window.__announcementButtons = { key: "congregation", buttons: [] };
       }
     } else {
-      const buttonText = "FIGHT!";
-      const buttonWidth = Math.min(260, layout.virtualCanvas.width * 0.6);
       const buttonHeight = 52;
-      const buttonX = layout.virtualCanvas.width / 2 - buttonWidth / 2;
+      const buttonGap = 16;
+      const maxButtonWidth = Math.min(260, layout.virtualCanvas.width * 0.44);
+      const buttonWidth = Math.max(170, maxButtonWidth);
+      const totalButtonWidth = buttonWidth * 2 + buttonGap;
+      const groupStartX = layout.virtualCanvas.width / 2 - totalButtonWidth / 2;
+      const fightButtonX = groupStartX;
+      const tutorialButtonX = groupStartX + buttonWidth + buttonGap;
       const buttonTopY = getAnnouncementScreenTopY({
         canvasHeight: layout.virtualCanvas.height,
         HUD_HEIGHT,
@@ -7524,7 +7528,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const buttonY = Math.round(buttonTopY);
       if (typeof window !== "undefined") {
         window.__congregationPlayButtonBounds = {
-          x: layout.offsetX + buttonX * layout.scale,
+          x: layout.offsetX + fightButtonX * layout.scale,
           y: layout.offsetY + buttonY * layout.scale,
           width: buttonWidth * layout.scale,
           height: buttonHeight * layout.scale,
@@ -7534,7 +7538,14 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           buttons: [
             {
               key: "play",
-              x: layout.offsetX + buttonX * layout.scale,
+              x: layout.offsetX + fightButtonX * layout.scale,
+              y: layout.offsetY + buttonY * layout.scale,
+              width: buttonWidth * layout.scale,
+              height: buttonHeight * layout.scale,
+            },
+            {
+              key: "tutorial",
+              x: layout.offsetX + tutorialButtonX * layout.scale,
               y: layout.offsetY + buttonY * layout.scale,
               width: buttonWidth * layout.scale,
               height: buttonHeight * layout.scale,
@@ -7542,14 +7553,27 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           ],
         };
       }
-      ctx.fillStyle = getEmberButtonGradient(ctx, buttonY, buttonHeight);
-      ctx.strokeStyle = EMBER_BUTTON_PALETTE.border;
-      ctx.lineWidth = 2;
-      roundRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 16, true, true);
-      if (isAnnouncementButtonFocused("congregation", 0)) {
-        drawFocusRing(ctx, buttonX - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18);
-        drawButtonReflection(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 16, 0.45);
-      }
+      const drawCongregationButton = (x, label, focusIndex) => {
+        ctx.fillStyle = getEmberButtonGradient(ctx, buttonY, buttonHeight);
+        ctx.strokeStyle = EMBER_BUTTON_PALETTE.border;
+        ctx.lineWidth = 2;
+        roundRect(ctx, x, buttonY, buttonWidth, buttonHeight, 16, true, true);
+        if (isAnnouncementButtonFocused("congregation", focusIndex)) {
+          drawFocusRing(ctx, x - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18);
+          drawButtonReflection(ctx, x, buttonY, buttonWidth, buttonHeight, 16, 0.45);
+        }
+        const textX = x + buttonWidth / 2;
+        const mainTextY = buttonY + buttonHeight / 2 + 1;
+        ctx.strokeStyle = "rgba(73, 18, 12, 0.95)";
+        ctx.lineWidth = 3;
+        ctx.strokeText(label, textX, mainTextY);
+        ctx.fillText(label, textX, mainTextY);
+        pushTypographyDebugLabel(
+          "button",
+          layout.offsetX + textX * layout.scale,
+          layout.offsetY + mainTextY * layout.scale,
+        );
+      };
       const congregationBtnType = getCanvasSemanticForScreen("congregation", "button", "button");
       const congregationHintType = getCanvasSemanticForScreen("congregation", "hint", "caption");
       ctx.fillStyle = "#FFF2CF";
@@ -7559,13 +7583,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.textAlign = "center";
       ctx.font = `${congregationBtnType.weight} ${Math.max(20, Math.round(congregationBtnType.size * 1.4))}px ${PIXEL_UI_FONT_FAMILY}`;
       ctx.textBaseline = "middle";
-      const mainTextY = buttonY + buttonHeight / 2 + 1;
-      ctx.strokeStyle = "rgba(73, 18, 12, 0.95)";
-      ctx.lineWidth = 3;
-      ctx.strokeText(buttonText, layout.virtualCanvas.width / 2, mainTextY);
-      ctx.fillText(buttonText, layout.virtualCanvas.width / 2, mainTextY);
-      pushTypographyDebugLabel("button", layout.offsetX + layout.virtualCanvas.width / 2 * layout.scale, layout.offsetY + mainTextY * layout.scale);
-      const fightHintText = gamepadConnected ? "Press Menu button to start" : "Press Space to start";
+      drawCongregationButton(fightButtonX, "FIGHT!", 0);
+      drawCongregationButton(tutorialButtonX, "TUTORIAL", 1);
+      const fightHintText = gamepadConnected ? "Press Menu button to select" : "Press Space to select";
       ctx.fillStyle = "rgba(231, 176, 102, 0.86)";
       ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
       ctx.shadowBlur = 2;
@@ -8827,14 +8847,19 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       { key: "movesList", label: "Moves" },
       { key: "settings", label: "Settings" },
     ];
+    const row2Configs = [
+      { key: "howToPlay", label: "How to Play" },
+    ];
     const pauseButtonType = getCanvasSemanticForScreen("pauseMenu", "button", "button");
     const pauseCaptionType = getCanvasSemanticForScreen("pauseMenu", "caption", "caption");
     const buttonWidth = 240;
     const buttonHeight = 64;
     const buttonGap = 28;
     const row1Width = buttonWidth * row1Configs.length + buttonGap * (row1Configs.length - 1);
+    const row2Width = buttonWidth * row2Configs.length + buttonGap * (row2Configs.length - 1);
     const centerX = layout.virtualCanvas.width / 2;
     const buttonY = Math.round(layout.buttonY || 0);
+    const row2Y = buttonY + buttonHeight + 18;
     const bounds = [];
     const drawButtonRow = (configs, rowWidth, rowY) => {
       const startX = Math.round(centerX - rowWidth / 2);
@@ -8870,6 +8895,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       });
     };
     drawButtonRow(row1Configs, row1Width, buttonY);
+    drawButtonRow(row2Configs, row2Width, row2Y);
 
     // --- Tips panel ---
     const tips = (typeof window !== "undefined" && Array.isArray(window.BattlechurchTips) && window.BattlechurchTips.length > 0)
@@ -8912,7 +8938,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       if (current) lines.push(current);
 
       const panelH = panelPadY * 2 + lines.length * lineH;
-      const panelY = buttonY + buttonHeight + 24;
+      const panelY = row2Y + buttonHeight + 22;
 
       // Panel background
       ctx.save();

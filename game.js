@@ -23477,7 +23477,11 @@ function updateCongregationStage(dt, levelStatus) {
     key: "congregation",
     buttons,
     allowSpace: true,
-    onActivate: () => {
+    onActivate: (button) => {
+      if (button?.key === "tutorial") {
+        requestDevMeleeArenaLaunch();
+        return;
+      }
       if (typeof levelManager?.advanceFromCongregation !== "function") return;
       const now = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
       if (pendingDistrictIntroStart && now - districtIntroDismissedAt < 300) {
@@ -23765,9 +23769,7 @@ function handlePauseMenu() {
         }
         if (button.key === "howToPlay") {
           pauseRestartConfirmActive = false;
-          if (typeof window !== "undefined" && window.PlayingInstructions) {
-            window.PlayingInstructions.open();
-          }
+          requestDevMeleeArenaLaunch();
           return;
         }
         if (button.key === "movesList") {
