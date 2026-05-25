@@ -15500,7 +15500,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   function drawTotalCongregationPill() {
     const b = requireBindings();
     const { ctx, canvas, UI_FONT_FAMILY, gameStarted, levelAnnouncements } = b;
-    if (!ctx || !canvas || !gameStarted) return;
+    if (!ctx || !canvas) return;
 
     const levelStatus = b.levelManager?.getStatus?.() || null;
     const stage = levelStatus?.stage;
@@ -15517,6 +15517,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const tutorialProgress =
       tutorialHud && typeof tutorialHud.progressText === "string" ? tutorialHud.progressText.trim() : "";
     const tutorialActive = Boolean(tutorialModeActive || tutorialPendingStart || tutorialLabel);
+    if (!gameStarted && !tutorialActive) return;
     const activeStages = new Set([
       "waveIntro", "waveActive", "allKillBreak", "waveCleared",
       "bossIntro", "bossActive", "graceRush",

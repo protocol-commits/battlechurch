@@ -5919,7 +5919,9 @@ function handleTutorialArenaButtons() {
   return handleAnnouncementButtons({
     key: "tutorialArena",
     buttons,
-    allowSpace: true,
+    // Do not bind confirm keys here; gamepad/keyboard attack inputs reuse
+    // those keys and can accidentally trigger tutorial UI buttons mid-combat.
+    allowSpace: false,
     onActivate: (button) => {
       const key = String(button?.key || "");
       if (key === "tutorialStart") {
@@ -30665,6 +30667,8 @@ function updateGame(dt) {
     });
   }
   if (isTutorialArenaActive()) {
+    // Keep objective HUD pinned every frame in tutorial mode.
+    updateTutorialArenaHudState();
     if (tutorialArenaState?.pendingStart) {
       const startPressed =
         keysJustPressed.has(" ") ||
@@ -30688,6 +30692,8 @@ function updateGame(dt) {
     updateTutorialArenaMoveObjectiveProgress();
     enforceTutorialArenaVitals();
     maintainTutorialArenaWaveSpawns();
+    // Re-apply after objective progression/spawn updates in the same frame.
+    updateTutorialArenaHudState();
     const completionAt = Number(tutorialArenaState?.completionQueuedAt) || 0;
     if (completionAt > 0) {
       const now = typeof performance !== "undefined" ? performance.now() : Date.now();
