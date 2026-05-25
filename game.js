@@ -5527,7 +5527,7 @@ const TUTORIAL_ARENA_MOVE_CONTEXT_WINDOW_MS = 600;
 const TUTORIAL_ARENA_SLASH_KILL_WINDOW_MS = 500;
 const TUTORIAL_ARENA_CLEAVE_KILL_WINDOW_MS = 500;
 const TUTORIAL_ARENA_OBJECTIVES = [
-  { type: "move_wasd", label: "Move with WASD" },
+  { type: "move_wasd", label: "Move with WASD or XBox Controller" },
   { type: "kill_any", target: 100, label: "Kill 100 Enemies with Auto Fire" },
   { type: "kill_with_move", move: "Slash", target: 100, label: "Kill 100 enemies with Slash (A)" },
   { type: "dash_plus_kills", move: "Dash", dashTarget: 5, killTarget: 100, label: "Dash 5 times and kill 100 enemies" },
@@ -6012,10 +6012,14 @@ function updateTutorialArenaMoveObjectiveProgress() {
     tutorialArenaState.movementKeysSeen = { w: false, a: false, s: false, d: false };
   }
   const seen = tutorialArenaState.movementKeysSeen;
-  if (keysPressed.has("w") || keysPressed.has("W")) seen.w = true;
-  if (keysPressed.has("a") || keysPressed.has("A")) seen.a = true;
-  if (keysPressed.has("s") || keysPressed.has("S")) seen.s = true;
-  if (keysPressed.has("d") || keysPressed.has("D")) seen.d = true;
+  const upActive = (keysPressed.has("w") || keysPressed.has("W")) || isActionActive("up");
+  const leftActive = (keysPressed.has("a") || keysPressed.has("A")) || isActionActive("left");
+  const downActive = (keysPressed.has("s") || keysPressed.has("S")) || isActionActive("down");
+  const rightActive = (keysPressed.has("d") || keysPressed.has("D")) || isActionActive("right");
+  if (upActive) seen.w = true;
+  if (leftActive) seen.a = true;
+  if (downActive) seen.s = true;
+  if (rightActive) seen.d = true;
   updateTutorialArenaHudState();
   checkTutorialArenaObjectiveComplete();
 }
