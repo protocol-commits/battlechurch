@@ -5527,13 +5527,15 @@ const TUTORIAL_ARENA_MOVE_CONTEXT_WINDOW_MS = 600;
 const TUTORIAL_ARENA_SLASH_KILL_WINDOW_MS = 500;
 const TUTORIAL_ARENA_CLEAVE_KILL_WINDOW_MS = 500;
 const TUTORIAL_ARENA_OBJECTIVES = [
-  { type: "kill_with_move", move: "Slash", target: 50, label: "Kill 50 enemies with Slash (A)" },
+  { type: "move_wasd", label: "Move with WASD" },
+  { type: "kill_any", target: 100, label: "Kill 100 Enemies with Auto Fire" },
+  { type: "kill_with_move", move: "Slash", target: 100, label: "Kill 100 enemies with Slash (A)" },
+  { type: "dash_plus_kills", move: "Dash", dashTarget: 5, killTarget: 100, label: "Dash 5 times and kill 100 enemies" },
   { type: "kill_with_move", move: "Blast", target: 100, label: "Kill 100 enemies with Blast (Charge A)" },
   { type: "kill_with_move", move: "Crash", target: 100, label: "Kill 100 enemies with Crash (Charge B)" },
   { type: "kill_with_move", move: "Smash", target: 100, label: "Kill 100 enemies with Smash (B -> A)" },
   { type: "kill_with_move", move: "Reap", target: 100, label: "Kill 100 enemies with Reap (C -> A)" },
   { type: "kill_with_move", move: "Clash", target: 100, label: "Kill 100 enemies with Clash (C -> B)" },
-  { type: "dash_plus_kills", move: "Dash", dashTarget: 5, killTarget: 100, label: "Dash 5 times and kill 100 enemies" },
   { type: "kill_with_move", move: "Cleave", target: 50, label: "Kill 50 enemies with Cleave (A -> B)" },
   { type: "kill_with_move", move: "Thrash", target: 50, label: "Kill 50 enemies with Thrash (Charge B + A)" },
   { type: "kill_with_move", move: "Purify", target: 100, label: "Kill 100 enemies with Purify (Charge C)" },
@@ -5796,7 +5798,22 @@ function getTutorialArenaCurrentMoveContext() {
 
 function updateTutorialArenaHudState() {
   if (typeof window === "undefined") return;
-  if (!isTutorialArenaActive() || !tutorialArenaState?.currentObjective) {
+  if (!isTutorialArenaActive()) {
+    window.__tutorialArenaHud = null;
+    window.__tutorialArenaPendingStart = false;
+    return;
+  }
+  if (tutorialArenaState?.pendingStart) {
+    window.__tutorialArenaHud = {
+      label: "Start Tutorial",
+      progressText: "Press Start Tutorial",
+      moveKey: "",
+    };
+    window.__tutorialArenaPendingStart = true;
+    return;
+  }
+  window.__tutorialArenaPendingStart = false;
+  if (!tutorialArenaState?.currentObjective) {
     window.__tutorialArenaHud = null;
     return;
   }
@@ -5807,6 +5824,24 @@ function updateTutorialArenaHudState() {
       label,
       progressText: `Dashes ${tutorialArenaState.dashCount}/${objective.dashTarget} | Kills ${tutorialArenaState.anyKillCount}/${objective.killTarget}`,
       moveKey: String(objective.move || ""),
+    };
+    return;
+  }
+  if (objective.type === "kill_any") {
+    window.__tutorialArenaHud = {
+      label,
+      progressText: `${tutorialArenaState.anyKillCount}/${objective.target}`,
+      moveKey: "",
+    };
+    return;
+  }
+  if (objective.type === "move_wasd") {
+    const seen = tutorialArenaState?.movementKeysSeen || {};
+    const count = (seen.w ? 1 : 0) + (seen.a ? 1 : 0) + (seen.s ? 1 : 0) + (seen.d ? 1 : 0);
+    window.__tutorialArenaHud = {
+      label,
+      progressText: `${count}/4`,
+      moveKey: "",
     };
     return;
   }
@@ -5825,6 +5860,7 @@ function announceTutorialArenaObjective() {
 
 function stepTutorialArenaObjective(delta = 1) {
   if (!isTutorialArenaActive() || !tutorialArenaState) return;
+  if (tutorialArenaState.pendingStart) return;
   const maxIndex = Math.max(0, TUTORIAL_ARENA_OBJECTIVES.length - 1);
   const current = Math.max(0, Number(tutorialArenaState.objectiveIndex) || 0);
   const next = Math.max(0, Math.min(maxIndex, current + Math.trunc(delta)));
@@ -5845,6 +5881,7 @@ function exitTutorialArenaToGame() {
   clearTutorialArenaMoveKillWindows();
   if (typeof window !== "undefined") {
     window.__battlechurchTutorialArenaMode = false;
+    window.__tutorialArenaPendingStart = false;
     window.__tutorialArenaHud = null;
     window.__tutorialArenaButtons = null;
   }
@@ -5885,6 +5922,13 @@ function handleTutorialArenaButtons() {
     allowSpace: true,
     onActivate: (button) => {
       const key = String(button?.key || "");
+      if (key === "tutorialStart") {
+        if (tutorialArenaState?.pendingStart) {
+          tutorialArenaState.pendingStart = false;
+          startTutorialArenaObjective(tutorialArenaState.objectiveIndex || 0);
+        }
+        return;
+      }
       if (key === "tutorialPrev") {
         stepTutorialArenaObjective(-1);
         return;
@@ -5902,6 +5946,7 @@ function handleTutorialArenaButtons() {
 
 function startTutorialArenaObjective(index) {
   if (!isTutorialArenaActive()) return;
+  if (tutorialArenaState?.pendingStart) return;
   const objective = TUTORIAL_ARENA_OBJECTIVES[index];
   if (!objective) {
     queueLevelAnnouncement("Tutorial Complete", "All core moves completed", {
@@ -5922,6 +5967,7 @@ function startTutorialArenaObjective(index) {
   tutorialArenaState.moveKillCount = 0;
   tutorialArenaState.anyKillCount = 0;
   tutorialArenaState.dashCount = 0;
+  tutorialArenaState.movementKeysSeen = { w: false, a: false, s: false, d: false };
   tutorialArenaState.batchSpawned = false;
   tutorialArenaState.completionQueuedAt = 0;
   tutorialArenaCurrentMoveContext = { move: "", at: 0 };
@@ -5943,14 +5989,35 @@ function completeTutorialArenaObjective() {
 
 function checkTutorialArenaObjectiveComplete() {
   if (!isTutorialArenaActive() || !tutorialArenaState?.currentObjective) return;
+  if (tutorialArenaState.pendingStart) return;
   const objective = tutorialArenaState.currentObjective;
   let done = false;
   if (objective.type === "dash_plus_kills") {
     done = tutorialArenaState.dashCount >= objective.dashTarget && tutorialArenaState.anyKillCount >= objective.killTarget;
+  } else if (objective.type === "kill_any") {
+    done = tutorialArenaState.anyKillCount >= objective.target;
+  } else if (objective.type === "move_wasd") {
+    const seen = tutorialArenaState?.movementKeysSeen || {};
+    done = Boolean(seen.w && seen.a && seen.s && seen.d);
   } else {
     done = tutorialArenaState.moveKillCount >= objective.target;
   }
   if (done) completeTutorialArenaObjective();
+}
+
+function updateTutorialArenaMoveObjectiveProgress() {
+  if (!isTutorialArenaActive() || !tutorialArenaState?.currentObjective) return;
+  if (tutorialArenaState.currentObjective.type !== "move_wasd") return;
+  if (!tutorialArenaState.movementKeysSeen) {
+    tutorialArenaState.movementKeysSeen = { w: false, a: false, s: false, d: false };
+  }
+  const seen = tutorialArenaState.movementKeysSeen;
+  if (keysPressed.has("w") || keysPressed.has("W")) seen.w = true;
+  if (keysPressed.has("a") || keysPressed.has("A")) seen.a = true;
+  if (keysPressed.has("s") || keysPressed.has("S")) seen.s = true;
+  if (keysPressed.has("d") || keysPressed.has("D")) seen.d = true;
+  updateTutorialArenaHudState();
+  checkTutorialArenaObjectiveComplete();
 }
 
 function onTutorialArenaEnemyDefeated(enemy) {
@@ -6049,6 +6116,8 @@ function spawnTutorialArenaBatch() {
 
 function maintainTutorialArenaWaveSpawns() {
   if (!isTutorialArenaActive() || !tutorialArenaState?.currentObjective) return;
+  if (tutorialArenaState.pendingStart) return;
+  if (tutorialArenaState.currentObjective.type === "move_wasd") return;
   if (tutorialArenaState.completionQueuedAt > 0) return;
   if (!tutorialArenaState.batchSpawned) {
     spawnTutorialArenaBatch();
@@ -6752,8 +6821,9 @@ function activateTutorialArenaMode() {
     batchSpawned: false,
     completionQueuedAt: 0,
     nextSpawnSide: Math.random() < 0.5 ? "left" : "right",
+    pendingStart: true,
   };
-  startTutorialArenaObjective(0);
+  updateTutorialArenaHudState();
   pauseAllMusic();
   if (musicState.devArena) {
     musicState.devArena.currentTime = 0;
@@ -28140,11 +28210,12 @@ const _MB = {
   seq: () => ({ type: "seq" }),
   sim: () => ({ type: "sim" }),
   chg: () => ({ type: "chg" }),
+  tap: () => ({ type: "tap" }),
 };
 const MOVE_NAME_AC_SUPER = "Hedge";
 const MOVE_BANNER_TOKENS = Object.freeze({
-  Slash:           [_MB.btn("A")],
-  Dash:            [_MB.btn("B")],
+  Slash:           [_MB.tap(), _MB.btn("A")],
+  Dash:            [_MB.tap(), _MB.btn("B")],
   Blast:           [_MB.chg(), _MB.btn("A")],
   Crash:           [_MB.chg(), _MB.btn("B")],
   Smash:           [_MB.btn("B"), _MB.seq(), _MB.btn("A")],
@@ -28153,7 +28224,7 @@ const MOVE_BANNER_TOKENS = Object.freeze({
   Clash:           [_MB.btn("C"), _MB.seq(), _MB.btn("B")],
   Trash:           [_MB.chg(), _MB.btn("B"), _MB.sim(), _MB.btn("C")],
   [MOVE_NAME_AC_SUPER]: [_MB.chg(), _MB.btn("A"), _MB.sim(), _MB.btn("C")],
-  Cleave:          [_MB.btn("A"), _MB.sim(), _MB.btn("B")],
+  Cleave:          [_MB.btn("A"), _MB.seq(), _MB.btn("B")],
   "Unity Strike":  [_MB.btn("C")],
   "Pastor Protect":[_MB.btn("C"), _MB.seq(), _MB.btn("C")],
   "Prayer Storm":  [_MB.chg(), _MB.btn("A"), _MB.sim(), _MB.btn("B"), _MB.sim(), _MB.btn("C")],
@@ -30590,6 +30661,27 @@ function updateGame(dt) {
     });
   }
   if (isTutorialArenaActive()) {
+    if (tutorialArenaState?.pendingStart) {
+      const startPressed =
+        keysJustPressed.has(" ") ||
+        keysJustPressed.has("enter") ||
+        keysJustPressed.has("Enter");
+      if (startPressed) {
+        keysJustPressed.delete(" ");
+        keysJustPressed.delete("enter");
+        keysJustPressed.delete("Enter");
+        tutorialArenaState.pendingStart = false;
+        startTutorialArenaObjective(tutorialArenaState.objectiveIndex || 0);
+      }
+      updateTutorialArenaHudState();
+      enforceTutorialArenaVitals();
+      enemies.splice(0, enemies.length);
+      projectiles.splice(0, projectiles.length);
+      bossHazards.splice(0, bossHazards.length);
+      clearGracePickups();
+      return;
+    }
+    updateTutorialArenaMoveObjectiveProgress();
     enforceTutorialArenaVitals();
     maintainTutorialArenaWaveSpawns();
     const completionAt = Number(tutorialArenaState?.completionQueuedAt) || 0;

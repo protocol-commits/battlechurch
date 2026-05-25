@@ -15508,11 +15508,15 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       typeof window !== "undefined" && window.__tutorialArenaHud
         ? window.__tutorialArenaHud
         : null;
+    const tutorialModeActive =
+      typeof window !== "undefined" && window.__battlechurchTutorialArenaActive === true;
+    const tutorialPendingStart =
+      typeof window !== "undefined" && window.__tutorialArenaPendingStart === true;
     const tutorialLabel =
       tutorialHud && typeof tutorialHud.label === "string" ? tutorialHud.label.trim() : "";
     const tutorialProgress =
       tutorialHud && typeof tutorialHud.progressText === "string" ? tutorialHud.progressText.trim() : "";
-    const tutorialActive = Boolean(tutorialLabel);
+    const tutorialActive = Boolean(tutorialModeActive || tutorialPendingStart || tutorialLabel);
     const activeStages = new Set([
       "waveIntro", "waveActive", "allKillBreak", "waveCleared",
       "bossIntro", "bossActive", "graceRush",
@@ -15573,7 +15577,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           ? window.__battlechurchMoveBannerTokens
           : null;
       const moveTokens = tokenMap && Array.isArray(tokenMap[moveKey]) ? tokenMap[moveKey] : null;
-      const titleLabel = tutorialLabel.replace(/\s*\([^)]*\)\s*$/g, "").trim();
+      const titleLabel = (tutorialLabel || "Tutorial")
+        .replace(/\s*\([^)]*\)\s*$/g, "")
+        .trim();
       ctx.globalAlpha = 1;
       ctx.textAlign = "center";
       ctx.textBaseline = "alphabetic";
@@ -15596,7 +15602,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         moveTokens.forEach((tok) => {
           if (tok.type === "btn") tokenRowW += PILL_W;
           else if (tok.type === "seq" || tok.type === "sim") tokenRowW += SEP_W;
-          else if (tok.type === "chg") tokenRowW += measureCtx.measureText("Charge").width + PREFIX_GAP;
+          else if (tok.type === "chg") tokenRowW += measureCtx.measureText("Hold").width + PREFIX_GAP;
+          else if (tok.type === "tap") tokenRowW += measureCtx.measureText("Tap").width + PREFIX_GAP;
         });
         let tx = Math.round(canvas.width / 2 - tokenRowW / 2);
         const tokenY = baseY + 14;
@@ -15640,12 +15647,25 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
             ctx.fillText("+", tx + SEP_W / 2, tokenCenterY);
             tx += SEP_W;
           } else if (tok.type === "chg") {
-            ctx.fillStyle = "rgba(220, 200, 140, 0.88)";
-            ctx.font = `italic 14px ${UI_FONT_FAMILY || "sans-serif"}`;
+            ctx.fillStyle = "rgba(250, 222, 154, 0.98)";
+            ctx.font = `800 20px ${UI_FONT_FAMILY || "sans-serif"}`;
+            ctx.shadowColor = "rgba(0,0,0,0.45)";
+            ctx.shadowBlur = 3;
             ctx.textAlign = "left";
             ctx.textBaseline = "middle";
-            ctx.fillText("Charge", tx, tokenCenterY);
-            tx += ctx.measureText("Charge").width + PREFIX_GAP;
+            ctx.fillText("Hold", tx, tokenCenterY);
+            ctx.shadowBlur = 0;
+            tx += ctx.measureText("Hold").width + PREFIX_GAP;
+          } else if (tok.type === "tap") {
+            ctx.fillStyle = "rgba(250, 222, 154, 0.98)";
+            ctx.font = `800 20px ${UI_FONT_FAMILY || "sans-serif"}`;
+            ctx.shadowColor = "rgba(0,0,0,0.45)";
+            ctx.shadowBlur = 3;
+            ctx.textAlign = "left";
+            ctx.textBaseline = "middle";
+            ctx.fillText("Tap", tx, tokenCenterY);
+            ctx.shadowBlur = 0;
+            tx += ctx.measureText("Tap").width + PREFIX_GAP;
           }
         });
       }
@@ -15667,11 +15687,17 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const btnH = 44;
       const btnPadX = 18;
       const btnGap = 12;
-      const labels = [
-        { key: "tutorialPrev", label: "Prev" },
-        { key: "tutorialNext", label: "Next" },
-        { key: "tutorialBack", label: "Back to Game" },
-      ];
+      const pendingStart =
+        typeof window !== "undefined" && window.__tutorialArenaPendingStart === true;
+      const labels = pendingStart
+        ? [
+            { key: "tutorialStart", label: "Start Tutorial" },
+          ]
+        : [
+            { key: "tutorialPrev", label: "Prev" },
+            { key: "tutorialNext", label: "Next" },
+            { key: "tutorialBack", label: "Back to Game" },
+          ];
       ctx.font = `800 20px ${UI_FONT_FAMILY || "sans-serif"}`;
       const widths = labels.map((entry) => Math.ceil(ctx.measureText(entry.label).width + btnPadX * 2));
       const totalW = widths.reduce((sum, w) => sum + w, 0) + btnGap * (labels.length - 1);
