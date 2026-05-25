@@ -5529,8 +5529,10 @@ const TUTORIAL_ARENA_CLEAVE_KILL_WINDOW_MS = 500;
 const TUTORIAL_ARENA_OBJECTIVES = [
   { type: "kill_with_move", move: "Slash", target: 50, label: "Kill 50 enemies with Slash (A)" },
   { type: "kill_with_move", move: "Blast", target: 100, label: "Kill 100 enemies with Blast (Charge A)" },
+  { type: "kill_with_move", move: "Crash", target: 100, label: "Kill 100 enemies with Crash (Charge B)" },
   { type: "kill_with_move", move: "Smash", target: 100, label: "Kill 100 enemies with Smash (B -> A)" },
   { type: "kill_with_move", move: "Reap", target: 100, label: "Kill 100 enemies with Reap (C -> A)" },
+  { type: "kill_with_move", move: "Clash", target: 100, label: "Kill 100 enemies with Clash (C -> B)" },
   { type: "dash_plus_kills", move: "Dash", dashTarget: 5, killTarget: 100, label: "Dash 5 times and kill 100 enemies" },
   { type: "kill_with_move", move: "Cleave", target: 50, label: "Kill 50 enemies with Cleave (A -> B)" },
   { type: "kill_with_move", move: "Thrash", target: 50, label: "Kill 50 enemies with Thrash (Charge B + A)" },

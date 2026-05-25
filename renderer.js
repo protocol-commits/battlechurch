@@ -15664,35 +15664,41 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ctx.fillText(tutorialProgress, canvas.width / 2, progressY);
       }
 
-      const btnH = 30;
-      const btnPadX = 12;
-      const btnGap = 8;
+      const btnH = 44;
+      const btnPadX = 18;
+      const btnGap = 12;
       const labels = [
         { key: "tutorialPrev", label: "Prev" },
         { key: "tutorialNext", label: "Next" },
         { key: "tutorialBack", label: "Back to Game" },
       ];
-      ctx.font = `700 15px ${UI_FONT_FAMILY || "sans-serif"}`;
+      ctx.font = `800 20px ${UI_FONT_FAMILY || "sans-serif"}`;
       const widths = labels.map((entry) => Math.ceil(ctx.measureText(entry.label).width + btnPadX * 2));
       const totalW = widths.reduce((sum, w) => sum + w, 0) + btnGap * (labels.length - 1);
       let x = canvas.width - totalW - 18;
-      const y = canvas.height - btnH - 16;
+      const y = canvas.height - btnH - 18;
       const btnBounds = [];
       labels.forEach((entry, idx) => {
         const w = widths[idx];
-        ctx.globalAlpha = 0.92;
-        ctx.fillStyle = "rgba(18, 12, 10, 0.88)";
-        ctx.strokeStyle = "rgba(255, 214, 148, 0.92)";
+        const gradient = ctx.createLinearGradient(x, y, x, y + btnH);
+        gradient.addColorStop(0, EMBER_BUTTON_PALETTE.top);
+        gradient.addColorStop(1, EMBER_BUTTON_PALETTE.bottom);
+        ctx.globalAlpha = 0.96;
+        ctx.fillStyle = gradient;
+        ctx.strokeStyle = EMBER_BUTTON_PALETTE.border;
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.roundRect(x, y, w, btnH, 8);
+        ctx.roundRect(x, y, w, btnH, 14);
         ctx.fill();
         ctx.stroke();
         ctx.globalAlpha = 1;
-        ctx.fillStyle = "rgba(255, 236, 198, 0.98)";
+        ctx.fillStyle = EMBER_BUTTON_PALETTE.text;
+        ctx.shadowColor = EMBER_BUTTON_PALETTE.textShadow;
+        ctx.shadowBlur = 6;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText(entry.label, x + w / 2, y + btnH / 2 + 0.5);
+        ctx.shadowBlur = 0;
         btnBounds.push({ key: entry.key, x, y, width: w, height: btnH, enabled: true });
         x += w + btnGap;
       });
