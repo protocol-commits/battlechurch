@@ -853,6 +853,32 @@
       ctx.restore();
     };
 
+    const drawTutorialArenaObjective = () => {
+      if (typeof window === "undefined") return;
+      const state = window.__tutorialArenaHud;
+      if (!state || !state.label) return;
+      const x = columnXs[0] + 6;
+      const y = panelY + panelHeight + 22;
+      ctx.save();
+      ctx.textAlign = "left";
+      ctx.textBaseline = "alphabetic";
+      ctx.strokeStyle = "rgba(0,0,0,0.75)";
+      ctx.lineWidth = 3;
+      ctx.lineJoin = "round";
+      ctx.fillStyle = PALETTE.gold || "#DDA677";
+      ctx.font = hudFont(HUD_FONTS.meterLabel, "700");
+      ctx.strokeText(String(state.label), x, y);
+      ctx.fillText(String(state.label), x, y);
+      ctx.fillStyle = PALETTE.softWhite || "#DFDFC4";
+      ctx.font = hudFont(HUD_FONTS.chip, "700");
+      const progressText = String(state.progressText || "");
+      if (progressText) {
+        ctx.strokeText(progressText, x, y + 16);
+        ctx.fillText(progressText, x, y + 16);
+      }
+      ctx.restore();
+    };
+
     drawPrayerBombMeter();
 
     const drawPlayerInfo = () => {

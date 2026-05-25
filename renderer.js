@@ -15504,11 +15504,20 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
 
     const levelStatus = b.levelManager?.getStatus?.() || null;
     const stage = levelStatus?.stage;
+    const tutorialHud =
+      typeof window !== "undefined" && window.__tutorialArenaHud
+        ? window.__tutorialArenaHud
+        : null;
+    const tutorialLabel =
+      tutorialHud && typeof tutorialHud.label === "string" ? tutorialHud.label.trim() : "";
+    const tutorialProgress =
+      tutorialHud && typeof tutorialHud.progressText === "string" ? tutorialHud.progressText.trim() : "";
+    const tutorialActive = Boolean(tutorialLabel);
     const activeStages = new Set([
       "waveIntro", "waveActive", "allKillBreak", "waveCleared",
       "bossIntro", "bossActive", "graceRush",
     ]);
-    if (!stage || !activeStages.has(stage)) {
+    if (!tutorialActive && (!stage || !activeStages.has(stage))) {
       _wavePill.alpha = 0;
       return;
     }
@@ -15546,7 +15555,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       }
     }
 
-    if (_wavePill.alpha <= 0 || !_wavePill.text) return;
+    if (!tutorialActive && (_wavePill.alpha <= 0 || !_wavePill.text)) return;
 
     const colors = (typeof window !== "undefined" && window.UIStyles?.colors) || {};
     const semantic = (typeof window !== "undefined" && window.UIStyles?.typography?.canvasSemantic) || {};
@@ -15554,29 +15563,169 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const captionSize = Math.round(Math.max(18, wavePillToken.size * 0.9));
 
     ctx.save();
-    ctx.font = `700 ${captionSize}px ${UI_FONT_FAMILY || "sans-serif"}`;
-    const textW = ctx.measureText(_wavePill.text).width;
-    const padX = 10;
-    const padY = 6;
-    const pillW = padX + textW + padX;
-    const pillH = captionSize + padY * 2;
-    const margin = 12;
-    const px = margin;
-    const py = canvas.height - pillH - margin;
+    if (tutorialActive) {
+      const baseY = canvas.height - 108;
+      const titleSize = Math.max(28, Math.round(captionSize * 1.8));
+      const progressSize = Math.max(20, Math.round(titleSize * 0.68));
+      const moveKey = String(tutorialHud?.moveKey || "");
+      const tokenMap =
+        typeof window !== "undefined" && window.__battlechurchMoveBannerTokens
+          ? window.__battlechurchMoveBannerTokens
+          : null;
+      const moveTokens = tokenMap && Array.isArray(tokenMap[moveKey]) ? tokenMap[moveKey] : null;
+      const titleLabel = tutorialLabel.replace(/\s*\([^)]*\)\s*$/g, "").trim();
+      ctx.globalAlpha = 1;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "alphabetic";
+      ctx.lineJoin = "round";
+      ctx.strokeStyle = "rgba(0,0,0,0.86)";
+      ctx.fillStyle = colors.gold || "#DDA677";
+      ctx.lineWidth = 6;
+      ctx.font = `800 ${titleSize}px ${UI_FONT_FAMILY || "sans-serif"}`;
+      ctx.strokeText(titleLabel || tutorialLabel, canvas.width / 2, baseY);
+      ctx.fillText(titleLabel || tutorialLabel, canvas.width / 2, baseY);
 
-    ctx.globalAlpha = _wavePill.alpha * 0.82;
-    ctx.fillStyle = colors.hudPanelBg || "rgba(16,16,36,0.6)";
-    ctx.beginPath();
-    ctx.roundRect(px, py, pillW, pillH, 6);
-    ctx.fill();
+      if (moveTokens && moveTokens.length) {
+        const PILL_W = 30;
+        const PILL_H = 30;
+        const SEP_W = 20;
+        const PREFIX_GAP = 8;
+        const measureCtx = ctx;
+        measureCtx.font = `italic 14px ${UI_FONT_FAMILY || "sans-serif"}`;
+        let tokenRowW = 0;
+        moveTokens.forEach((tok) => {
+          if (tok.type === "btn") tokenRowW += PILL_W;
+          else if (tok.type === "seq" || tok.type === "sim") tokenRowW += SEP_W;
+          else if (tok.type === "chg") tokenRowW += measureCtx.measureText("Charge").width + PREFIX_GAP;
+        });
+        let tx = Math.round(canvas.width / 2 - tokenRowW / 2);
+        const tokenY = baseY + 14;
+        const tokenCenterY = tokenY + PILL_H / 2;
+        const buttonChargeStyles = {
+          A: { fill: "rgba(88, 154, 186, 0.95)", stroke: "rgba(198, 232, 255, 0.95)", text: "#F2FCFF" },
+          B: { fill: "rgba(85, 168, 144, 0.95)", stroke: "rgba(197, 248, 230, 0.95)", text: "#F2FFF9" },
+          C: { fill: "rgba(206, 140, 79, 0.97)", stroke: "rgba(255, 236, 178, 0.98)", text: "#FFF8DF" },
+        };
+        moveTokens.forEach((tok) => {
+          if (tok.type === "btn") {
+            const label = String(tok.label || "").toUpperCase();
+            const style = buttonChargeStyles[label] || { fill: "rgba(160, 50, 15, 0.9)", stroke: "rgba(255, 190, 70, 0.85)", text: "#DFDFC4" };
+            const cx = tx + PILL_W / 2;
+            const radius = Math.min(PILL_W, PILL_H) * 0.5 - 1;
+            ctx.fillStyle = style.fill;
+            ctx.strokeStyle = style.stroke;
+            ctx.lineWidth = 1.8;
+            ctx.beginPath();
+            ctx.arc(cx, tokenCenterY, radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = style.text;
+            ctx.font = `800 16px ${UI_FONT_FAMILY || "sans-serif"}`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(label, cx, tokenCenterY);
+            tx += PILL_W;
+          } else if (tok.type === "seq") {
+            ctx.fillStyle = "rgba(230, 210, 160, 0.92)";
+            ctx.font = `700 16px ${UI_FONT_FAMILY || "sans-serif"}`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("→", tx + SEP_W / 2, tokenCenterY + 1);
+            tx += SEP_W;
+          } else if (tok.type === "sim") {
+            ctx.fillStyle = "rgba(230, 210, 160, 0.92)";
+            ctx.font = `700 16px ${UI_FONT_FAMILY || "sans-serif"}`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("+", tx + SEP_W / 2, tokenCenterY);
+            tx += SEP_W;
+          } else if (tok.type === "chg") {
+            ctx.fillStyle = "rgba(220, 200, 140, 0.88)";
+            ctx.font = `italic 14px ${UI_FONT_FAMILY || "sans-serif"}`;
+            ctx.textAlign = "left";
+            ctx.textBaseline = "middle";
+            ctx.fillText("Charge", tx, tokenCenterY);
+            tx += ctx.measureText("Charge").width + PREFIX_GAP;
+          }
+        });
+      }
 
-    ctx.globalAlpha = _wavePill.alpha;
-    ctx.font = `700 ${captionSize}px ${UI_FONT_FAMILY || "sans-serif"}`;
-    ctx.fillStyle = colors.gold || "#DDA677";
-    ctx.textAlign = "left";
-    ctx.textBaseline = "middle";
-    ctx.fillText(_wavePill.text, px + padX, py + pillH / 2);
+      if (tutorialProgress) {
+        ctx.shadowColor = "transparent";
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = colors.softWhite || "#DFDFC4";
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = "rgba(0,0,0,0.72)";
+        ctx.font = `800 ${progressSize}px ${UI_FONT_FAMILY || "sans-serif"}`;
+        const progressY = moveTokens && moveTokens.length
+          ? baseY + 14 + 30 + Math.round(progressSize * 1.05)
+          : baseY + Math.round(progressSize * 1.15);
+        ctx.strokeText(tutorialProgress, canvas.width / 2, progressY);
+        ctx.fillText(tutorialProgress, canvas.width / 2, progressY);
+      }
 
+      const btnH = 30;
+      const btnPadX = 12;
+      const btnGap = 8;
+      const labels = [
+        { key: "tutorialPrev", label: "Prev" },
+        { key: "tutorialNext", label: "Next" },
+        { key: "tutorialBack", label: "Back to Game" },
+      ];
+      ctx.font = `700 15px ${UI_FONT_FAMILY || "sans-serif"}`;
+      const widths = labels.map((entry) => Math.ceil(ctx.measureText(entry.label).width + btnPadX * 2));
+      const totalW = widths.reduce((sum, w) => sum + w, 0) + btnGap * (labels.length - 1);
+      let x = canvas.width - totalW - 18;
+      const y = canvas.height - btnH - 16;
+      const btnBounds = [];
+      labels.forEach((entry, idx) => {
+        const w = widths[idx];
+        ctx.globalAlpha = 0.92;
+        ctx.fillStyle = "rgba(18, 12, 10, 0.88)";
+        ctx.strokeStyle = "rgba(255, 214, 148, 0.92)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(x, y, w, btnH, 8);
+        ctx.fill();
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = "rgba(255, 236, 198, 0.98)";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(entry.label, x + w / 2, y + btnH / 2 + 0.5);
+        btnBounds.push({ key: entry.key, x, y, width: w, height: btnH, enabled: true });
+        x += w + btnGap;
+      });
+      if (typeof window !== "undefined") {
+        window.__tutorialArenaButtons = btnBounds;
+      }
+    } else {
+      if (typeof window !== "undefined") {
+        window.__tutorialArenaButtons = null;
+      }
+      ctx.font = `700 ${captionSize}px ${UI_FONT_FAMILY || "sans-serif"}`;
+      const textW = ctx.measureText(_wavePill.text).width;
+      const padX = 10;
+      const padY = 6;
+      const pillW = padX + textW + padX;
+      const pillH = captionSize + padY * 2;
+      const margin = 12;
+      const px = margin;
+      const py = canvas.height - pillH - margin;
+
+      ctx.globalAlpha = _wavePill.alpha * 0.82;
+      ctx.fillStyle = colors.hudPanelBg || "rgba(16,16,36,0.6)";
+      ctx.beginPath();
+      ctx.roundRect(px, py, pillW, pillH, 6);
+      ctx.fill();
+
+      ctx.globalAlpha = _wavePill.alpha;
+      ctx.font = `700 ${captionSize}px ${UI_FONT_FAMILY || "sans-serif"}`;
+      ctx.fillStyle = colors.gold || "#DDA677";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillText(_wavePill.text, px + padX, py + pillH / 2);
+    }
     ctx.restore();
   }
 

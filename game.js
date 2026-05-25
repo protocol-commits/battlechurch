@@ -5492,6 +5492,14 @@ const DEV_ARENA_IMP_GRID_COLS = 10;
 const DEV_ARENA_IMP_SPACING = 30;
 let devMeleeArenaMode = false;
 let pendingDevMeleeArenaLaunch = false;
+let tutorialArenaMode = false;
+let pendingTutorialArenaLaunch = false;
+let tutorialArenaReturnRoute = "congregation";
+let tutorialArenaLaunchContext = {
+  stage: "",
+  titleScreenActive: false,
+  mapActive: false,
+};
 const DEV_MELEE_FEED_MAX = 12;
 const DEV_MELEE_COMBO_WINDOW_MS = 1300;
 let devMeleeMoveFeed = [];
@@ -5512,6 +5520,45 @@ const DEV_ARENA_PICKUP_EFFECT_DURATION = 3;
 const DEV_ARENA_PLAYER_WEAPON_EFFECT_DURATION = 6;
 const DEV_ARENA_PICKUP_RESPAWN_DELAY = 1.0;
 let devArenaPickupSlots = [];
+const TUTORIAL_ARENA_BATCH_SIZE = 100;
+const TUTORIAL_ARENA_REINFORCE_THRESHOLD = 50;
+const TUTORIAL_ARENA_PRAYER_REFILL_MS = 4000;
+const TUTORIAL_ARENA_MOVE_CONTEXT_WINDOW_MS = 600;
+const TUTORIAL_ARENA_SLASH_KILL_WINDOW_MS = 500;
+const TUTORIAL_ARENA_CLEAVE_KILL_WINDOW_MS = 500;
+const TUTORIAL_ARENA_OBJECTIVES = [
+  { type: "kill_with_move", move: "Slash", target: 50, label: "Kill 50 enemies with Slash (A)" },
+  { type: "kill_with_move", move: "Blast", target: 100, label: "Kill 100 enemies with Blast (Charge A)" },
+  { type: "kill_with_move", move: "Smash", target: 100, label: "Kill 100 enemies with Smash (B -> A)" },
+  { type: "kill_with_move", move: "Reap", target: 100, label: "Kill 100 enemies with Reap (C -> A)" },
+  { type: "dash_plus_kills", move: "Dash", dashTarget: 5, killTarget: 100, label: "Dash 5 times and kill 100 enemies" },
+  { type: "kill_with_move", move: "Cleave", target: 50, label: "Kill 50 enemies with Cleave (A -> B)" },
+  { type: "kill_with_move", move: "Thrash", target: 50, label: "Kill 50 enemies with Thrash (Charge B + A)" },
+  { type: "kill_with_move", move: "Purify", target: 100, label: "Kill 100 enemies with Purify (Charge C)" },
+  { type: "kill_with_move", move: "Prayer Storm", target: 100, label: "Kill 100 enemies with Prayer Storm (Charge A + B + C)" },
+  { type: "kill_with_move", move: "Unity Strike", target: 100, label: "Kill 100 enemies with Unity Strike (C)" },
+];
+let tutorialArenaState = null;
+let tutorialArenaPrayerRefillAt = 0;
+let tutorialArenaLastPrayerCharge = null;
+let tutorialArenaCurrentMoveContext = { move: "", at: 0 };
+let tutorialArenaLaunchLockUntil = 0;
+let tutorialArenaSwarmGroupSerial = 0;
+let tutorialArenaMoveKillWindowUntilByMove = Object.create(null);
+
+function clearTutorialArenaMoveKillWindows() {
+  tutorialArenaMoveKillWindowUntilByMove = Object.create(null);
+}
+
+function openTutorialArenaMoveKillWindow(moveName, durationMs) {
+  if (!isTutorialArenaActive()) return;
+  const key = String(moveName || "");
+  if (!key || !Number.isFinite(durationMs) || durationMs <= 0) return;
+  const now = typeof performance !== "undefined" && typeof performance.now === "function"
+    ? performance.now()
+    : Date.now();
+  tutorialArenaMoveKillWindowUntilByMove[key] = now + durationMs;
+}
 const DEV_ARENA_FLOOR_OPTIONS = [
   { key: "floor-A1", label: "Floor A1", src: "assets/backgrounds/floors-arena/floor-A1.png" },
   { key: "floor-A2", label: "Floor A2", src: "assets/backgrounds/floors-arena/floor-A2.png" },
@@ -5720,6 +5767,321 @@ function maintainDevArenaPickups() {
 
 function isDevMeleeArenaActive() {
   return devMeleeArenaMode === true;
+}
+
+function isTutorialArenaActive() {
+  return tutorialArenaMode === true;
+}
+
+function setTutorialArenaMoveContext(moveName) {
+  if (!isTutorialArenaActive() || !moveName) return;
+  const now = typeof performance !== "undefined" && typeof performance.now === "function"
+    ? performance.now()
+    : Date.now();
+  tutorialArenaCurrentMoveContext = { move: String(moveName), at: now };
+}
+
+function getTutorialArenaCurrentMoveContext() {
+  if (!tutorialArenaCurrentMoveContext?.move) return "";
+  const now = typeof performance !== "undefined" && typeof performance.now === "function"
+    ? performance.now()
+    : Date.now();
+  if (now - (Number(tutorialArenaCurrentMoveContext.at) || 0) > TUTORIAL_ARENA_MOVE_CONTEXT_WINDOW_MS) {
+    return "";
+  }
+  return String(tutorialArenaCurrentMoveContext.move || "");
+}
+
+function updateTutorialArenaHudState() {
+  if (typeof window === "undefined") return;
+  if (!isTutorialArenaActive() || !tutorialArenaState?.currentObjective) {
+    window.__tutorialArenaHud = null;
+    return;
+  }
+  const objective = tutorialArenaState.currentObjective;
+  const label = String(objective.label || "");
+  if (objective.type === "dash_plus_kills") {
+    window.__tutorialArenaHud = {
+      label,
+      progressText: `Dashes ${tutorialArenaState.dashCount}/${objective.dashTarget} | Kills ${tutorialArenaState.anyKillCount}/${objective.killTarget}`,
+      moveKey: String(objective.move || ""),
+    };
+    return;
+  }
+  window.__tutorialArenaHud = {
+    label,
+    progressText: `${tutorialArenaState.moveKillCount}/${objective.target}`,
+    moveKey: String(objective.move || ""),
+  };
+}
+
+function announceTutorialArenaObjective() {
+  const objective = tutorialArenaState?.currentObjective;
+  if (!objective) return;
+  updateTutorialArenaHudState();
+}
+
+function stepTutorialArenaObjective(delta = 1) {
+  if (!isTutorialArenaActive() || !tutorialArenaState) return;
+  const maxIndex = Math.max(0, TUTORIAL_ARENA_OBJECTIVES.length - 1);
+  const current = Math.max(0, Number(tutorialArenaState.objectiveIndex) || 0);
+  const next = Math.max(0, Math.min(maxIndex, current + Math.trunc(delta)));
+  if (next === current) return;
+  startTutorialArenaObjective(next);
+}
+
+function exitTutorialArenaToGame() {
+  const returnRoute = String(tutorialArenaReturnRoute || "congregation");
+  const launchStage = String(tutorialArenaLaunchContext?.stage || "");
+  const launchedFromTitle = Boolean(tutorialArenaLaunchContext?.titleScreenActive);
+  const launchedFromMap = Boolean(tutorialArenaLaunchContext?.mapActive);
+  tutorialArenaMode = false;
+  tutorialArenaState = null;
+  tutorialArenaPrayerRefillAt = 0;
+  tutorialArenaLastPrayerCharge = null;
+  tutorialArenaCurrentMoveContext = { move: "", at: 0 };
+  clearTutorialArenaMoveKillWindows();
+  if (typeof window !== "undefined") {
+    window.__battlechurchTutorialArenaMode = false;
+    window.__tutorialArenaHud = null;
+    window.__tutorialArenaButtons = null;
+  }
+  enemies.splice(0, enemies.length);
+  projectiles.splice(0, projectiles.length);
+  bossHazards.splice(0, bossHazards.length);
+  clearAllPowerUps();
+  clearGracePickups();
+  if (returnRoute === "title" || launchedFromTitle || launchedFromMap) {
+    if (typeof window !== "undefined" && typeof window.returnToTitleScreen === "function") {
+      window.returnToTitleScreen();
+      return;
+    }
+    restartGame();
+    return;
+  }
+  if (returnRoute === "congregation" || launchStage === "levelIntro" || launchStage === "congregationToTeaser") {
+    return;
+  }
+  const stage = levelManager?.getStatus?.()?.stage || "";
+  if (stage === "levelIntro" && typeof levelManager?.advanceFromCongregation === "function") {
+    levelManager.advanceFromCongregation();
+  } else if (stage === "briefing" && typeof levelManager?.advanceFromBriefing === "function") {
+    levelManager.advanceFromBriefing();
+  }
+}
+
+function handleTutorialArenaButtons() {
+  if (!isTutorialArenaActive()) return false;
+  const buttons =
+    typeof window !== "undefined" && Array.isArray(window.__tutorialArenaButtons)
+      ? window.__tutorialArenaButtons
+      : null;
+  if (!buttons || !buttons.length) return false;
+  return handleAnnouncementButtons({
+    key: "tutorialArena",
+    buttons,
+    allowSpace: true,
+    onActivate: (button) => {
+      const key = String(button?.key || "");
+      if (key === "tutorialPrev") {
+        stepTutorialArenaObjective(-1);
+        return;
+      }
+      if (key === "tutorialNext") {
+        stepTutorialArenaObjective(1);
+        return;
+      }
+      if (key === "tutorialBack") {
+        exitTutorialArenaToGame();
+      }
+    },
+  });
+}
+
+function startTutorialArenaObjective(index) {
+  if (!isTutorialArenaActive()) return;
+  const objective = TUTORIAL_ARENA_OBJECTIVES[index];
+  if (!objective) {
+    queueLevelAnnouncement("Tutorial Complete", "All core moves completed", {
+      duration: 3.0,
+      skipMissionBrief: true,
+      allowDuringSuppression: true,
+    });
+    tutorialArenaMode = false;
+    if (typeof window !== "undefined") {
+      window.__tutorialArenaHud = null;
+    }
+    return;
+  }
+  tutorialArenaState.objectiveIndex = index;
+  tutorialArenaState.currentObjective = objective;
+  enemies.splice(0, enemies.length);
+  projectiles.splice(0, projectiles.length);
+  tutorialArenaState.moveKillCount = 0;
+  tutorialArenaState.anyKillCount = 0;
+  tutorialArenaState.dashCount = 0;
+  tutorialArenaState.batchSpawned = false;
+  tutorialArenaState.completionQueuedAt = 0;
+  tutorialArenaCurrentMoveContext = { move: "", at: 0 };
+  clearTutorialArenaMoveKillWindows();
+  announceTutorialArenaObjective();
+}
+
+function completeTutorialArenaObjective() {
+  if (!isTutorialArenaActive() || !tutorialArenaState || tutorialArenaState.completionQueuedAt > 0) return;
+  tutorialArenaCurrentMoveContext = { move: "", at: 0 };
+  clearTutorialArenaMoveKillWindows();
+  tutorialArenaState.completionQueuedAt = (typeof performance !== "undefined" ? performance.now() : Date.now()) + 1200;
+  queueLevelAnnouncement("Objective Complete", "", {
+    duration: 1.1,
+    skipMissionBrief: true,
+    allowDuringSuppression: true,
+  });
+}
+
+function checkTutorialArenaObjectiveComplete() {
+  if (!isTutorialArenaActive() || !tutorialArenaState?.currentObjective) return;
+  const objective = tutorialArenaState.currentObjective;
+  let done = false;
+  if (objective.type === "dash_plus_kills") {
+    done = tutorialArenaState.dashCount >= objective.dashTarget && tutorialArenaState.anyKillCount >= objective.killTarget;
+  } else {
+    done = tutorialArenaState.moveKillCount >= objective.target;
+  }
+  if (done) completeTutorialArenaObjective();
+}
+
+function onTutorialArenaEnemyDefeated(enemy) {
+  if (!isTutorialArenaActive() || !tutorialArenaState?.currentObjective || !enemy) return;
+  if (enemy.__tutorialObjectiveCounted) return;
+  enemy.__tutorialObjectiveCounted = true;
+  if (enemy.type !== "miniImp") return;
+  const objective = tutorialArenaState.currentObjective;
+  tutorialArenaState.anyKillCount += 1;
+  if (objective.type === "kill_with_move") {
+    const objectiveMove = String(objective.move || "");
+    const moveName = String(enemy.tutorialLastMove || "");
+    let countsForObjective = moveName === objectiveMove;
+    if (!countsForObjective) {
+      const now = typeof performance !== "undefined" && typeof performance.now === "function"
+        ? performance.now()
+        : Date.now();
+      const windowUntil = Number(tutorialArenaMoveKillWindowUntilByMove[objectiveMove]) || 0;
+      if (now <= windowUntil) {
+        countsForObjective = true;
+      }
+    }
+    if (countsForObjective) {
+      tutorialArenaState.moveKillCount += 1;
+    }
+  }
+  updateTutorialArenaHudState();
+  checkTutorialArenaObjectiveComplete();
+}
+
+function onTutorialArenaEnemyKilledInstant(enemy) {
+  onTutorialArenaEnemyDefeated(enemy);
+}
+
+function getTutorialArenaSwarmSpawnPoint(side = "right") {
+  const width = Math.max(1, Number(canvas?.width) || 1920);
+  const height = Math.max(1, Number(canvas?.height) || 1080);
+  const hud = Number.isFinite(HUD_HEIGHT) ? HUD_HEIGHT : 0;
+  const minY = Math.max(hud + 120, hud + (height - hud) * 0.22);
+  const maxY = Math.max(minY + 40, height - 160);
+  const y = randomInRange(minY, maxY);
+  if (side === "left") {
+    return { x: -4, y, __spawnEdge: "left" };
+  }
+  return { x: width + 4, y, __spawnEdge: "right" };
+}
+
+function collectTutorialArenaInstantDeaths() {
+  if (!isTutorialArenaActive() || !Array.isArray(enemies) || !enemies.length) return;
+  for (let i = 0; i < enemies.length; i += 1) {
+    const enemy = enemies[i];
+    if (!enemy || enemy.__tutorialObjectiveCounted) continue;
+    if (enemy.type !== "miniImp") continue;
+    if (enemy.state === "death" || enemy.dead || (Number.isFinite(enemy.health) && enemy.health <= 0)) {
+      onTutorialArenaEnemyDefeated(enemy);
+    }
+  }
+}
+
+function spawnTutorialArenaBatch() {
+  if (!isTutorialArenaActive()) return;
+  const side = tutorialArenaState?.nextSpawnSide === "left" ? "left" : "right";
+  const spawnPoint = getTutorialArenaSwarmSpawnPoint(side);
+  const cols = 10;
+  const spacingX = 26;
+  const spacingY = 24;
+  const depth = (cols - 1) * spacingX;
+  const halfRows = (Math.ceil(TUTORIAL_ARENA_BATCH_SIZE / cols) - 1) * 0.5;
+  const swarmGroupId = `tutorialSwarm:${++tutorialArenaSwarmGroupSerial}`;
+  for (let i = 0; i < TUTORIAL_ARENA_BATCH_SIZE; i += 1) {
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    const offsetY = (row - halfRows) * spacingY + randomInRange(-6, 6);
+    const laneX =
+      side === "left"
+        ? spawnPoint.x - depth + col * spacingX + randomInRange(-4, 4)
+        : spawnPoint.x + depth - col * spacingX + randomInRange(-4, 4);
+    spawnEnemyOfType(
+      "miniImp",
+      { x: laneX, y: spawnPoint.y + offsetY, __spawnEdge: side },
+      {
+        skipSpawnEffects: false,
+        applyCameraShake: i === 0,
+        swarmGroupId,
+        swarmGroupInitialCount: TUTORIAL_ARENA_BATCH_SIZE,
+        swarmGroupType: "miniImp",
+        swarmGroupLabel: String(TUTORIAL_ARENA_BATCH_SIZE),
+      },
+    );
+  }
+  if (tutorialArenaState) {
+    tutorialArenaState.nextSpawnSide = side === "left" ? "right" : "left";
+  }
+  tutorialArenaState.batchSpawned = true;
+}
+
+function maintainTutorialArenaWaveSpawns() {
+  if (!isTutorialArenaActive() || !tutorialArenaState?.currentObjective) return;
+  if (tutorialArenaState.completionQueuedAt > 0) return;
+  if (!tutorialArenaState.batchSpawned) {
+    spawnTutorialArenaBatch();
+    return;
+  }
+  const aliveMiniImps = enemies.filter((enemy) => enemy && !enemy.dead && enemy.state !== "death" && enemy.type === "miniImp").length;
+  if (aliveMiniImps < TUTORIAL_ARENA_REINFORCE_THRESHOLD) {
+    spawnTutorialArenaBatch();
+  }
+}
+
+function enforceTutorialArenaVitals() {
+  if (!isTutorialArenaActive() || !player) return;
+  player.invulnerableTimer = Math.max(player.invulnerableTimer || 0, 0.2);
+  const prayerRequired = Math.max(1, Number(player.prayerChargeRequired) || Number(PRAYER_BOMB_CHARGE_REQUIRED) || 1);
+  const now = typeof performance !== "undefined" && typeof performance.now === "function"
+    ? performance.now()
+    : Date.now();
+  if (!Number.isFinite(tutorialArenaLastPrayerCharge)) {
+    tutorialArenaLastPrayerCharge = Number(player.prayerCharge) || prayerRequired;
+  }
+  const currentPrayer = Math.max(0, Number(player.prayerCharge) || 0);
+  if (currentPrayer < tutorialArenaLastPrayerCharge - 0.001) {
+    tutorialArenaPrayerRefillAt = now + TUTORIAL_ARENA_PRAYER_REFILL_MS;
+  }
+  if (tutorialArenaPrayerRefillAt > 0 && now >= tutorialArenaPrayerRefillAt) {
+    player.prayerCharge = prayerRequired;
+    tutorialArenaPrayerRefillAt = 0;
+  }
+  tutorialArenaLastPrayerCharge = Math.max(0, Number(player.prayerCharge) || 0);
+  const commandRequired = Math.max(
+    0.001,
+    Number(player.congregationCommandChargeRequired) || Number(CONGREGATION_COMMAND_CHARGE_TIME) || 1,
+  );
+  player.congregationCommandCharge = commandRequired;
 }
 
 function resetDevMeleeMoveFeed() {
@@ -6325,6 +6687,136 @@ function requestDevMeleeArenaLaunch() {
     } else {
       setDevStatus("Dev Arena failed: no town/map loaded", 2.4);
     }
+    return;
+  }
+  if (typeof window !== "undefined") {
+    window.activeDistrictId = districtId;
+  }
+  activeDistrictId = districtId;
+  startRunForDistrict(districtId);
+}
+
+function activateTutorialArenaMode() {
+  tutorialArenaMode = true;
+  devMeleeArenaMode = false;
+  resetDevMeleeMoveFeed();
+  if (typeof window !== "undefined") {
+    window.__battlechurchDevMeleeArenaMode = false;
+    window.__battlechurchTutorialArenaMode = true;
+  }
+  paused = false;
+  gameOver = false;
+  postDeathSequenceActive = false;
+  postDeathAnimLeadActive = false;
+  postDeathAnimLeadTimer = 0;
+  pendingDistrictIntroStart = false;
+  suppressInitialAnnouncements = false;
+  if (Array.isArray(levelAnnouncements)) levelAnnouncements.length = 0;
+  if (levelManager?.reset) levelManager.reset();
+  clearCongregationMembers();
+  clearCongregationSpeechBubbles();
+  npcsSuspended = false;
+  battlefieldIntroFadeAlpha = 0;
+  resetCozyNpcs(5);
+  enemies.splice(0, enemies.length);
+  projectiles.splice(0, projectiles.length);
+  bossHazards.splice(0, bossHazards.length);
+  clearAllPowerUps();
+  clearGracePickups();
+  activeBoss = null;
+  tutorialArenaPrayerRefillAt = 0;
+  tutorialArenaLastPrayerCharge = null;
+  tutorialArenaCurrentMoveContext = { move: "", at: 0 };
+  if (player) {
+    const center = getDevMeleeArenaCenter();
+    player.x = center.x;
+    player.y = center.y - 180;
+    clampEntityToBounds(player);
+    player.maxHealth = DEV_MELEE_ARENA_HEALTH;
+    player.health = DEV_MELEE_ARENA_HEALTH;
+    const prayerRequired = Math.max(
+      1,
+      Number(player.prayerChargeRequired) || Number(PRAYER_BOMB_CHARGE_REQUIRED) || 1,
+    );
+    player.prayerCharge = prayerRequired;
+    player.invulnerableTimer = Math.max(3, player.invulnerableTimer || 0);
+  }
+  tutorialArenaState = {
+    objectiveIndex: 0,
+    currentObjective: null,
+    moveKillCount: 0,
+    anyKillCount: 0,
+    dashCount: 0,
+    batchSpawned: false,
+    completionQueuedAt: 0,
+    nextSpawnSide: Math.random() < 0.5 ? "left" : "right",
+  };
+  startTutorialArenaObjective(0);
+  pauseAllMusic();
+  if (musicState.devArena) {
+    musicState.devArena.currentTime = 0;
+    playMusic(musicState.devArena, { volume: MUSIC_VOLUME_BATTLE, loop: true });
+  }
+  setDevStatus("Tutorial Arena active", 2.2);
+}
+
+function requestTutorialArenaLaunch(source = "auto") {
+  const now = typeof performance !== "undefined" && typeof performance.now === "function"
+    ? performance.now()
+    : Date.now();
+  if (now < tutorialArenaLaunchLockUntil) return;
+  tutorialArenaLaunchLockUntil = now + 300;
+  if (isTutorialArenaActive()) return;
+  tutorialArenaLaunchContext = {
+    stage: String(levelManager?.getStatus?.()?.stage || ""),
+    titleScreenActive: Boolean(titleScreenActive),
+    mapActive: Boolean(mapActive),
+  };
+  const launchSource = String(source || "auto").toLowerCase();
+  if (launchSource === "title") {
+    tutorialArenaReturnRoute = "title";
+  } else if (launchSource === "congregation") {
+    tutorialArenaReturnRoute = "congregation";
+  } else if (launchSource === "pause") {
+    tutorialArenaReturnRoute = "gameplay";
+  } else {
+    const currentStage = String(levelManager?.getStatus?.()?.stage || "");
+    tutorialArenaReturnRoute = titleScreenActive
+      ? "title"
+      : (currentStage === "levelIntro" ? "congregation" : "gameplay");
+  }
+  pendingTutorialArenaLaunch = true;
+  const districts = Array.isArray(window.BattlechurchMapData?.districts) ? window.BattlechurchMapData.districts : [];
+  const districtId = districts[0]?.id || null;
+
+  // Title-screen path: bootstrap gameplay immediately, then tutorial activates
+  // as soon as player/game state is ready.
+  if (titleScreenActive) {
+    if (player) {
+      mapActive = false;
+      titleScreenActive = false;
+      activateTutorialArenaMode();
+      return;
+    }
+    if (districtId) {
+      activeDistrictId = districtId;
+      if (typeof window !== "undefined") window.activeDistrictId = districtId;
+    }
+    mapActive = false;
+    titleScreenActive = false;
+    startGameFromTitle();
+    pendingTutorialArenaLaunch = true;
+    if (player) activateTutorialArenaMode();
+    return;
+  }
+
+  if (!titleScreenActive && !mapActive && player) {
+    activateTutorialArenaMode();
+    return;
+  }
+  if (!districtId) {
+    if (player) activateTutorialArenaMode();
+    else setDevStatus("Tutorial Arena failed: no town/map loaded", 2.4);
     return;
   }
   if (typeof window !== "undefined") {
@@ -9485,10 +9977,14 @@ function startGameFromTitle() {
   // Don't start if assets haven't loaded yet
   if (!assetsLoaded) return;
   devMeleeArenaMode = false;
+  tutorialArenaMode = false;
+  tutorialArenaState = null;
   if (musicState.devArena) musicState.devArena.pause();
   resetDevMeleeMoveFeed();
   if (typeof window !== "undefined") {
     window.__battlechurchDevMeleeArenaMode = false;
+    window.__battlechurchTutorialArenaMode = false;
+    window.__tutorialArenaHud = null;
   }
   if (!pendingBattlefieldStartOverride && !devPlaytestLaunchInProgress) {
     setDevPlaytestSession(false, null);
@@ -22225,7 +22721,7 @@ function showDeveloperOverlay() {
             window.BattlechurchLevelBuilder?.show?.();
           } else if (action === "arena") {
             window.DialogOverlay.hide();
-            requestDevMeleeArenaLaunch();
+            requestTutorialArenaLaunch();
           } else if (action === "hitbox") {
             window.DialogOverlay.hide();
             window.BattlechurchHitboxEditor?.setActive?.(true);
@@ -22812,8 +23308,8 @@ function handleTitleScreen() {
           showSettingsOverlay({ source: "title" });
         } else if (button.key === "developer") {
           showDeveloperOverlay();
-        } else if (button.key === "howtoplay") {
-          requestDevMeleeArenaLaunch();
+        } else if (String(button.key || "").toLowerCase() === "howtoplay") {
+          requestTutorialArenaLaunch("title");
         }
       },
     });
@@ -23479,7 +23975,7 @@ function updateCongregationStage(dt, levelStatus) {
     allowSpace: true,
     onActivate: (button) => {
       if (button?.key === "tutorial") {
-        requestDevMeleeArenaLaunch();
+        requestTutorialArenaLaunch("congregation");
         return;
       }
       if (typeof levelManager?.advanceFromCongregation !== "function") return;
@@ -23767,9 +24263,9 @@ function handlePauseMenu() {
           }
           return;
         }
-        if (button.key === "howToPlay") {
+        if (String(button.key || "").toLowerCase() === "howtoplay") {
           pauseRestartConfirmActive = false;
-          requestDevMeleeArenaLaunch();
+          requestTutorialArenaLaunch("pause");
           return;
         }
         if (button.key === "movesList") {
@@ -24276,6 +24772,7 @@ function processDeadEnemies() {
     }
 
     lastEnemyDeathPosition = { x: enemy.x, y: enemy.y };
+    onTutorialArenaEnemyDefeated(enemy);
     maybeDropGraceFromEnemy(enemy);
     enemies.splice(i, 1);
   }
@@ -26444,6 +26941,10 @@ function registerMeleeComboHit(target, meleeAttackState, moveNameOverride = null
   meleeAttackState.comboMoveNames = names;
   meleeAttackState.devArenaComboEntries = detailEntries;
   const moveName = getComboMoveNameForHit(meleeAttackState, moveNameOverride);
+  // Tutorial objective attribution: remember the most recent resolved move that hit this enemy.
+  if (target && typeof target === "object") {
+    target.tutorialLastMove = moveName;
+  }
   const lastMoveName = names.length > 0 ? names[names.length - 1] : null;
   const isRepeatMove = chainActive && lastMoveName === moveName;
   const suppressRepeatCalloutMove = isRepeatMove && (moveName === "Trash" || moveName === "Thrash");
@@ -26798,6 +27299,13 @@ function showComboTextAt(entity, comboDamage, hitCount, lastHitDamage = 0, force
 function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCenterY, options = {}) {
   // Canonical move name: "Slash" is the default A melee attack.
   const moveName = String(options?.moveNameOverride || "Slash");
+  if (isTutorialArenaActive()) {
+    if (moveName === "Slash") {
+      openTutorialArenaMoveKillWindow("Slash", TUTORIAL_ARENA_SLASH_KILL_WINDOW_MS);
+    } else if (moveName === "Cleave") {
+      openTutorialArenaMoveKillWindow("Cleave", TUTORIAL_ARENA_CLEAVE_KILL_WINDOW_MS);
+    }
+  }
   showMoveBanner(moveName);
   registerComboMoveName(meleeAttackState, moveName);
   const damageMultiplier = Math.max(0.1, Number(options?.damageMultiplier) || 1) * getMoveMultiplier(moveName);
@@ -27651,12 +28159,21 @@ const MOVE_BANNER_TOKENS = Object.freeze({
   "Purify":        [_MB.chg(), _MB.btn("C")],
   "Purge":         [_MB.chg(), _MB.btn("C")],
 });
+if (typeof window !== "undefined") {
+  window.__battlechurchMoveBannerTokens = MOVE_BANNER_TOKENS;
+}
 
 function showMoveBanner(moveName) {
   const tokens = MOVE_BANNER_TOKENS[moveName];
   if (!tokens) return;
   const now = typeof performance !== "undefined" ? performance.now() : Date.now();
   window.__moveAnnouncementBanner = { moveName, tokens, shownAt: now, duration: 2000 };
+  setTutorialArenaMoveContext(moveName);
+  if (isTutorialArenaActive() && tutorialArenaState?.currentObjective?.type === "dash_plus_kills" && moveName === "Dash") {
+    tutorialArenaState.dashCount += 1;
+    updateTutorialArenaHudState();
+    checkTutorialArenaObjectiveComplete();
+  }
 }
 
 function clearDualChargeReadyPreview(meleeAttackState, { force = false } = {}) {
@@ -29216,13 +29733,90 @@ function updateMeleeAttackSystem(dt) {
     const bFull =
       Boolean(meleeAttackState.spinButtonDown && meleeAttackState.spinCharging) &&
       (meleeAttackState.spinChargeTimer || 0) >= holdBForAbc;
+    const cHeldForAbc = keysPressed.has("ArrowRight");
+    const fullPrayerReadyNow =
+      Number(player?.prayerCharge || 0) >= Number(player?.prayerChargeRequired || 6000);
+    const abcHoldReadyNow = Boolean(aFull && bFull && cHeldForAbc && fullPrayerReadyNow);
     // Prevent stale combo-intercept flags from suppressing Charged-C Purify input.
     if (!(meleeAttackState.buttonDown && meleeAttackState.isCharging)) {
       meleeAttackState.acSuperArmed = false;
     }
-    const cHeldForAbc = keysPressed.has("ArrowRight");
     const cJustReleasedForAbc = !cHeldForAbc && Boolean(meleeAttackState.abcPrevCHeld);
     meleeAttackState.abcPrevCHeld = cHeldForAbc;
+    if (abcHoldReadyNow) {
+      // Hard-priority gate: once full A+B+C is armed, suppress other release branches.
+      meleeAttackState.abcSmiteArmed = true;
+      meleeAttackState.abcSmitePendingRelease = true;
+      meleeAttackState.abSuperArmed = false;
+      meleeAttackState.acSuperArmed = false;
+      meleeAttackState.bcTeleportArmed = false;
+      if (typeof Input !== "undefined") Input.prayerBombClickQueued = false;
+      comboTriggered = true;
+    }
+    const abcReleaseReadyNow =
+      Boolean(cJustReleasedForAbc && aFull && bFull && fullPrayerReadyNow);
+    const purifyReleaseReadyNow =
+      Boolean(
+        cJustReleasedForAbc &&
+        !aFull &&
+        !bFull &&
+        player &&
+        (
+          Boolean(player.prayerHoldLocked) ||
+          (Number(player.prayerHoldTimer || 0) >= (Number(PRAYER_BOMB_HOLD_TIME) || 1.0) - 0.02)
+        ) &&
+        (player.getPrayerChargeRatio?.() || 0) >=
+          (typeof PRAYER_BOMB_LEVEL1_THRESHOLD === "number" ? PRAYER_BOMB_LEVEL1_THRESHOLD : 0.5) &&
+        typeof player.castPrayerBomb === "function" &&
+        !meleeAttackState.isRushing &&
+        !playerDashState.isDashing,
+      );
+    if (abcReleaseReadyNow && typeof player?.castPrayerBomb === "function") {
+      if (typeof cancelCongregationTap === "function") cancelCongregationTap();
+      if (typeof Input !== "undefined") Input.prayerBombClickQueued = false;
+      const casted = player.castPrayerBomb({ forceLevel3: true, allowWhileInvulnerable: true });
+      if (casted) {
+        meleeAttackState.abcSmiteArmed = false;
+        meleeAttackState.abcSmitePendingRelease = false;
+        meleeAttackState.abcSmiteLatch = false;
+        window.FloatingText?.heroSay?.("Prayer Storm");
+        window.showMoveBanner?.("Prayer Storm");
+        meleeAttackState.buttonDown = false;
+        meleeAttackState.isCharging = false;
+        meleeAttackState.chargeTimer = 0;
+        meleeAttackState.spinButtonDown = false;
+        meleeAttackState.spinCharging = false;
+        meleeAttackState.spinChargeTimer = 0;
+        meleeAttackState.abSuperArmed = false;
+        meleeAttackState.acSuperArmed = false;
+        meleeAttackState.acSuperPrayerBombBlockTimer = 0;
+        meleeAttackState.bcTeleportArmed = false;
+        meleeAttackState.bcTeleportBlockTimer = 0;
+        meleeAttackState.cBHolyDashBlockTimer = 0;
+        meleeAttackState.holyDashArmUntil = 0;
+        if (meleeAttackState.lastComboTimes) {
+          meleeAttackState.lastComboTimes.A = 0;
+          meleeAttackState.lastComboTimes.B = 0;
+          meleeAttackState.lastComboTimes.C = 0;
+        }
+        clearDivineChargeSparkVisual();
+        keysJustPressed.delete("ArrowRight");
+        keysJustPressed.delete("ArrowDown");
+        keysJustPressed.delete("ArrowLeft");
+        keysJustPressed.delete(" ");
+        return;
+      }
+    } else if (purifyReleaseReadyNow) {
+      if (typeof cancelCongregationTap === "function") cancelCongregationTap();
+      if (typeof Input !== "undefined") Input.prayerBombClickQueued = false;
+      const casted = player.castPrayerBomb({ allowWhileInvulnerable: true });
+      if (casted) {
+        window.FloatingText?.heroSay?.("Purify");
+        window.showMoveBanner?.("Purify");
+        keysJustPressed.delete("ArrowRight");
+        comboTriggered = true;
+      }
+    }
     // Allow Charged-C Purify to fire during Trash lifetime without relying on click-queue plumbing.
     if (
       cJustReleasedForAbc &&
@@ -29273,8 +29867,7 @@ function updateMeleeAttackSystem(dt) {
     const aHeldForAbc = Boolean(meleeAttackState.buttonDown);
     const bHeldForAbc = Boolean(meleeAttackState.spinButtonDown);
     const allThreeHeldForAbc = aHeldForAbc && bHeldForAbc && cHeldForAbc;
-    const fullPrayerReady =
-      Number(player?.prayerCharge || 0) >= Number(player?.prayerChargeRequired || 6000);
+    const fullPrayerReady = fullPrayerReadyNow;
     if (!allThreeHeldForAbc) {
       meleeAttackState.abcSmiteLatch = false;
     }
@@ -29298,7 +29891,7 @@ function updateMeleeAttackSystem(dt) {
       if (typeof cancelCongregationTap === "function") cancelCongregationTap();
       if (typeof Input !== "undefined") Input.prayerBombClickQueued = false;
       const casted = typeof player?.castPrayerBomb === "function"
-        ? player.castPrayerBomb({ forceLevel3: true })
+        ? player.castPrayerBomb({ forceLevel3: true, allowWhileInvulnerable: true })
         : false;
       meleeAttackState.abcSmiteArmed = false;
       meleeAttackState.abcSmitePendingRelease = false;
@@ -29505,6 +30098,14 @@ function updateMeleeAttackSystem(dt) {
       const fullyCharged = meleeAttackState.spinChargeTimer >= meleeAttackState.spinHoldTime;
       const cHeldOnBRelease = keysPressed.has("ArrowRight");
       const cHeldAtBPress = Boolean(meleeAttackState.cbHeldAtBPress);
+      const holdAForAbcOnBRelease = Math.max(0.001, meleeAttackState.holdTime || 0);
+      const aFullOnBRelease =
+        Boolean(meleeAttackState.buttonDown && meleeAttackState.isCharging) &&
+        (meleeAttackState.chargeTimer || 0) >= holdAForAbcOnBRelease;
+      const fullPrayerReadyOnBRelease =
+        Number(player?.prayerCharge || 0) >= Number(player?.prayerChargeRequired || 6000);
+      const abcFullIntentOnBRelease =
+        Boolean(fullyCharged && cHeldOnBRelease && aFullOnBRelease && fullPrayerReadyOnBRelease);
       const rollCost = player ? (player.prayerChargeRequired || 6000) / 6 : 40;
       const hasPrayerForRoll = player && (player.prayerCharge || 0) >= rollCost;
       const shouldRoll = meleeAttackState.bcTeleportArmed ||
@@ -29520,7 +30121,13 @@ function updateMeleeAttackSystem(dt) {
       meleeAttackState.spinButtonDown = false;
       if (meleeAttackState.spinCharging) {
         meleeAttackState.spinCharging = false;
-        if (canABSuper) {
+        if (abcFullIntentOnBRelease) {
+          // Prioritize full A+B+C path over B+C Thrash path.
+          meleeAttackState.abcSmiteArmed = true;
+          meleeAttackState.abcSmitePendingRelease = true;
+          if (typeof Input !== "undefined") Input.prayerBombClickQueued = false;
+          comboTriggered = true;
+        } else if (canABSuper) {
           // Cancel A charge so it doesn't also fire independently
           meleeAttackState.isCharging = false;
           meleeAttackState.buttonDown = false;
@@ -29899,6 +30506,11 @@ function handleDevArenaFloorPickerInput() {
 }
 
 function updateGame(dt) {
+  if (typeof window !== "undefined") {
+    window.__battlechurchTutorialArenaActive = isTutorialArenaActive();
+    window.__battlechurchTutorialLastMove = getTutorialArenaCurrentMoveContext();
+    window.onTutorialArenaEnemyKilledInstant = onTutorialArenaEnemyKilledInstant;
+  }
   syncDevPlaytestQuickActions();
   if (window.MapScreen?.updateAmbient) {
     window.MapScreen.updateAmbient(dt);
@@ -29951,7 +30563,11 @@ function updateGame(dt) {
     pendingDevMeleeArenaLaunch = false;
     activateDevMeleeArenaMode();
   }
+  if (!isTutorialArenaActive() && pendingTutorialArenaLaunch && player && !titleScreenActive && !mapActive) {
+    activateTutorialArenaMode();
+  }
   handleDevArenaFloorPickerInput();
+  if (handleTutorialArenaButtons()) return;
   if (!player) return;
   if (isDevMeleeArenaActive()) {
     enforceDevMeleeArenaVitals();
@@ -29970,6 +30586,17 @@ function updateGame(dt) {
       if (projectile.type === "faith_cannon") return;
       projectile.dead = true;
     });
+  }
+  if (isTutorialArenaActive()) {
+    enforceTutorialArenaVitals();
+    maintainTutorialArenaWaveSpawns();
+    const completionAt = Number(tutorialArenaState?.completionQueuedAt) || 0;
+    if (completionAt > 0) {
+      const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+      if (now >= completionAt) {
+        startTutorialArenaObjective((tutorialArenaState?.objectiveIndex || 0) + 1);
+      }
+    }
   }
   handleDeveloperHotkeys();
 
@@ -30313,6 +30940,7 @@ function updateGame(dt) {
   }
   if (
     !isDevMeleeArenaActive() &&
+    !isTutorialArenaActive() &&
     !gameOver &&
     levelManager &&
     (!paused || briefTeaserStage) &&
@@ -30329,7 +30957,7 @@ function updateGame(dt) {
   updateCongregationWaveIntroDialogue(dt, levelStatus);
 
   // Process pickups BEFORE player update so weapon changes apply immediately
-  if (!isDevMeleeArenaActive()) {
+  if (!isDevMeleeArenaActive() && !isTutorialArenaActive()) {
     updateChurchPowerupPickups(dt);
     updatePastorPowerupPickups(dt);
   }
@@ -30350,6 +30978,7 @@ function updateGame(dt) {
   }
 
   updateEnemiesAndEntities(dt);
+  collectTutorialArenaInstantDeaths();
   updateSmiteBombSweep(dt);
   updateRingOfFireHazards(dt);
   updatePrayerStormGroundFires(dt);
@@ -30578,11 +31207,16 @@ function onPlayerDeath() {
 
 function restartGame() {
   devMeleeArenaMode = false;
+  tutorialArenaMode = false;
   if (musicState.devArena) musicState.devArena.pause();
   pendingDevMeleeArenaLaunch = false;
+  pendingTutorialArenaLaunch = false;
+  tutorialArenaState = null;
   resetDevMeleeMoveFeed();
   if (typeof window !== "undefined") {
     window.__battlechurchDevMeleeArenaMode = false;
+    window.__battlechurchTutorialArenaMode = false;
+    window.__tutorialArenaHud = null;
   }
   teardownGame();
   endVisitorSession({ reason: "reset" });

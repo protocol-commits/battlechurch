@@ -2274,6 +2274,8 @@
     }
 
     const holdingPrayerKeys = Boolean(window.Input?.keysPressed?.has("ArrowRight"));
+    const prayerWasHeldLastFrame = Boolean(this._prayerWasHeldLastFrame);
+    const prayerWasLockedLastFrame = Boolean(this._prayerWasLockedLastFrame);
     const prayerBombAllowed = typeof this.isPrayerBombReady === "function" ? this.isPrayerBombReady() : false;
     if (holdingPrayerKeys && prayerBombAllowed) {
       this.prayerHoldTimer += dt;
@@ -2286,6 +2288,13 @@
       this.prayerHoldTimer = 0;
       this.prayerHoldLocked = false;
     }
+    const chargedPrayerReleased =
+      !holdingPrayerKeys &&
+      prayerWasHeldLastFrame &&
+      prayerWasLockedLastFrame &&
+      prayerBombAllowed;
+    this._prayerWasHeldLastFrame = holdingPrayerKeys;
+    this._prayerWasLockedLastFrame = Boolean(this.prayerHoldLocked);
 
     const congregationCommand =
       typeof consumeCongregationClick === "function" ? consumeCongregationClick() : false;
@@ -2331,7 +2340,7 @@
     if (suppressPrayerBombInput && typeof window !== "undefined" && window.Input) {
       window.Input.prayerBombClickQueued = false;
     }
-    if (!suppressPrayerBombInput && consumePrayerBombClick()) {
+    if (!suppressPrayerBombInput && (chargedPrayerReleased || consumePrayerBombClick())) {
       const casted = this.castPrayerBomb();
       if (casted) {
         window.FloatingText?.heroSay?.("Purify");
@@ -2717,7 +2726,9 @@
     // - Internal identifiers still use prayerBomb/smite keys for compatibility.
     const forceLevel3 = Boolean(options?.forceLevel3);
     const allowWhileInvulnerable = Boolean(options?.allowWhileInvulnerable);
-    if ((this.invulnerableTimer > 0 && !allowWhileInvulnerable) || gameOver) return false;
+    const tutorialInvulnerabilityBypass =
+      typeof window !== "undefined" && window.__battlechurchTutorialArenaMode === true;
+    if ((this.invulnerableTimer > 0 && !allowWhileInvulnerable && !tutorialInvulnerabilityBypass) || gameOver) return false;
     const ratio = this.getPrayerChargeRatio();
     const level1Threshold =
       typeof PRAYER_BOMB_LEVEL1_THRESHOLD === "number" ? PRAYER_BOMB_LEVEL1_THRESHOLD : 0.5;
@@ -4689,6 +4700,12 @@
       }
       if (this.health <= 0) {
         this.health = 0;
+        if (typeof window !== "undefined" && window.__battlechurchTutorialArenaActive) {
+          this.tutorialLastMove = String(window.__battlechurchTutorialLastMove || "");
+          if (typeof window.onTutorialArenaEnemyKilledInstant === "function") {
+            window.onTutorialArenaEnemyKilledInstant(this);
+          }
+        }
         if (this.type === "miniDemoness" && this.demonessGrabTarget) {
           this.releaseDemonessGrabTarget({ resumeNpc: true });
         }
