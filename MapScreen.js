@@ -218,6 +218,7 @@
     panelOpen: false,
     denomUpgrade: null, // { active, districtId, maxPicks, selectedKeys[], focusedIndex }
     panelFocus: 0,
+    mapCtaButton: null,
     navHoldDir: 0,
     navNextTime: 0,
     playerDoc: null,
@@ -2199,21 +2200,26 @@
     return ordered;
   }
 
-  function getNextVisibleDistrictId() {
+  function getVisibleDistrictIdsForCurrentFrontline() {
     const mapData = window.BattlechurchMapData;
     const progress = ensureProgress();
-    if (!mapData?.districts?.length || !progress) return state.selectedDistrictId;
+    if (!mapData?.districts?.length || !progress) return new Set();
     const orderedRegular = mapData.districts.filter(
       (district) => district && district.id && district.type !== "capital",
     );
-    const nextRegular = orderedRegular.find((district) => {
-      if (!isDistrictUnlocked(district.id)) return false;
-      return progress.districts?.[district.id]?.p1?.completed !== true;
-    });
-    if (nextRegular?.id) return nextRegular.id;
+    const nextRegular = orderedRegular.find(
+      (district) => progress.districts?.[district.id]?.p1?.completed !== true,
+    );
+    if (nextRegular?.frontId) {
+      return new Set(
+        orderedRegular
+          .filter((district) => district.frontId === nextRegular.frontId)
+          .map((district) => district.id),
+      );
+    }
     const capital = mapData.districts.find((district) => district && district.type === "capital");
-    if (capital && isDistrictUnlocked(capital.id)) return capital.id;
-    return state.selectedDistrictId;
+    if (capital?.id) return new Set([capital.id]);
+    return new Set();
   }
 
   function pickNextDistrict(direction) {
@@ -2431,6 +2437,8 @@
     ctx.fillText(secondaryLine, centerX, panelY + (panelStyle.secondaryY ?? 124) + areaVerticalOffset);
     pushTypographyDebugLabel("caption", centerX, panelY + (panelStyle.secondaryY ?? 124) + areaVerticalOffset);
 
+    const panelCampaignData = getDistrictCampaignData(district.id);
+    const playLocked = Boolean(panelCampaignData?.locked || !panelCampaignData?.campaign);
     const buttonW = 140;
     const buttonH = 44;
     const gap = 20;
@@ -2451,20 +2459,20 @@
       focus: "#F6C06E",
     };
     const buttons = [
-      { label: isLoading ? "Loading..." : "Play", x: startX, key: "play", isLoading },
+      { label: playLocked ? "Locked" : (isLoading ? "Loading..." : "Play"), x: startX, key: "play", isLoading, disabled: playLocked },
       { label: "Back", x: startX + buttonW + gap, key: "back", isLoading: false },
     ];
 
     buttons.forEach((btn, index) => {
       ctx.save();
-      if (btn.isLoading) {
+      if (btn.isLoading || btn.disabled) {
         // Loading button with progress bar
         ctx.fillStyle = buttonPalette.loadingBase;
         ctx.strokeStyle = buttonPalette.border;
         ctx.lineWidth = 2;
         roundRect(ctx, btn.x, buttonY, buttonW, buttonH, 16, true, true);
         // Progress fill
-        const fillWidth = buttonW * (loadProgress / 100);
+        const fillWidth = btn.disabled ? 0 : (buttonW * (loadProgress / 100));
         if (fillWidth > 0) {
           ctx.save();
           ctx.beginPath();
@@ -2507,9 +2515,71 @@
       width: buttonW,
       height: buttonH,
       index,
+      disabled: Boolean(btn.disabled),
     }));
 
     ctx.restore();
+  }
+
+  function drawMapSelectDistrictButton(ctx, canvas) {
+    if (state.panelOpen || state.denomUpgrade?.active) {
+      state.mapCtaButton = null;
+      return;
+    }
+    const hasSelection = Boolean(state.selectedDistrictId && isDistrictUnlocked(state.selectedDistrictId));
+    const mapData = window.BattlechurchMapData;
+    const unlockedRegularCount = (mapData?.districts || []).filter(
+      (district) => district && district.type !== "capital" && isDistrictUnlocked(district.id),
+    ).length;
+    const hasMultiDistrictChoice = unlockedRegularCount > 3;
+    const ctaLabel = hasMultiDistrictChoice ? "Select District" : "Play";
+    const buttonW = Math.min(420, canvas.width * 0.56);
+    const buttonH = 52;
+    const x = Math.round((canvas.width - buttonW) / 2);
+    const congregationBadgeH = 62;
+    const congregationBadgeBottomOffset = 28;
+    const congregationBadgeY = canvas.height - congregationBadgeH - congregationBadgeBottomOffset;
+    const y = Math.round(congregationBadgeY + (congregationBadgeH - buttonH) / 2);
+    const pointer = window.Input?.pointerState;
+    const hovering = Boolean(
+      pointer?.active &&
+      pointer.x >= x && pointer.x <= x + buttonW &&
+      pointer.y >= y && pointer.y <= y + buttonH,
+    );
+    const mapButtonType = getCanvasSemanticForMap("button", "button");
+
+    ctx.save();
+    const gradient = ctx.createLinearGradient(0, y, 0, y + buttonH);
+    if (hasSelection) {
+      gradient.addColorStop(0, hovering ? "#E07A3B" : "#D76B2D");
+      gradient.addColorStop(1, hovering ? "#A23A24" : "#8D2F1E");
+    } else {
+      gradient.addColorStop(0, "rgba(110, 72, 52, 0.95)");
+      gradient.addColorStop(1, "rgba(80, 48, 36, 0.95)");
+    }
+    ctx.fillStyle = gradient;
+    ctx.strokeStyle = hasSelection ? "rgba(255, 210, 148, 0.9)" : "rgba(188, 146, 120, 0.75)";
+    ctx.lineWidth = hovering ? 3 : 2;
+    roundRect(ctx, x, y, buttonW, buttonH, 16, true, true);
+
+    ctx.fillStyle = hasSelection ? "#FBEBC9" : "rgba(251, 235, 201, 0.7)";
+    ctx.shadowColor = "rgba(34, 10, 8, 0.68)";
+    ctx.shadowBlur = 5;
+    ctx.shadowOffsetY = 1;
+    ctx.font = `${mapButtonType.weight} ${Math.max(18, mapButtonType.size)}px ${UI_FONT_FAMILY}`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(hasSelection ? ctaLabel : `${ctaLabel} (Unavailable)`, x + buttonW / 2, y + buttonH / 2);
+    pushTypographyDebugLabel("button", x + buttonW / 2, y + buttonH / 2);
+    ctx.restore();
+
+    state.mapCtaButton = {
+      x,
+      y,
+      width: buttonW,
+      height: buttonH,
+      enabled: hasSelection,
+    };
   }
 
   function handlePanelInput(input, keysJustPressed) {
@@ -2529,10 +2599,14 @@
     if (confirmPressed) {
       const selection = state.panelButtons?.[state.panelFocus];
       if (selection?.key === "play") {
-        if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
-          window.playMenuItemPickSfx(0.55);
+        if (selection?.disabled !== true) {
+          if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
+            window.playMenuItemPickSfx(0.55);
+          }
+          startRunForDistrict(state.selectedDistrictId);
+        } else if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
+          window.playMenuItemPickSfx(0.35);
         }
-        startRunForDistrict(state.selectedDistrictId);
       } else {
         if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
           window.playMenuItemPickSfx(0.55);
@@ -2571,6 +2645,13 @@
   }
 
   function startRunForDistrict(districtId) {
+    const campaignData = getDistrictCampaignData(districtId);
+    if (!campaignData || campaignData.locked || !campaignData.campaign) {
+      if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
+        window.playMenuItemPickSfx(0.35);
+      }
+      return;
+    }
     const picks = getDenomPickCountForDistrict(districtId);
     if (picks > 0) {
       // Show denominational upgrade screen before launching
@@ -2788,13 +2869,30 @@
           window.playMenuItemPickSfx(0.55);
         }
         if (hit.key === "play") {
-          startRunForDistrict(state.selectedDistrictId);
+          if (hit.disabled !== true) {
+            startRunForDistrict(state.selectedDistrictId);
+          } else if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
+            window.playMenuItemPickSfx(0.35);
+          }
         } else {
           closeDistrictPanel();
         }
       return;
     }
     }
+    const cta = state.mapCtaButton;
+    const hitCta = cta &&
+      click.x >= cta.x && click.x <= cta.x + cta.width &&
+      click.y >= cta.y && click.y <= cta.y + cta.height;
+    if (hitCta) {
+      if (cta.enabled && state.selectedDistrictId) {
+        openDistrictPanel(state.selectedDistrictId);
+      } else if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
+        window.playMenuItemPickSfx(0.35);
+      }
+      return;
+    }
+
     const district = findDistrictAtPosition(click, rect);
     if (district && isDistrictUnlocked(district.id)) {
       if (district.id !== state.selectedDistrictId) {
@@ -2937,9 +3035,17 @@
   // Returns 'p1' | 'p2' | 'p3' — the next campaign to play for a town
   function getNextCampaignForDistrict(districtId, progress) {
     if (!progress) return "p1";
+    const district = getDistrictById(districtId);
+    if (!district) return "p1";
+    if (district.type === "capital") return "p1";
     const districtEntry = progress.districts?.[districtId];
     if (!districtEntry?.p1?.completed) return "p1";
-    if (!districtEntry?.p2?.completed) return "p2";
+    if (!districtEntry?.p2?.completed) {
+      return isP2UnlockedForDistrict(districtId, progress) ? "p2" : null;
+    }
+    if (!districtEntry?.p3?.completed) {
+      return isP3UnlockedForDistrict(districtId, progress) ? "p3" : null;
+    }
     return "p3"; // p3 done or in progress — replay p3 if all done
   }
 
@@ -2979,6 +3085,16 @@
       return { campaign: "p1", startCount: defaultStart, campaignMultiplier: 1.0, restoredChurchPowerupLevels: {} };
     }
     const campaign = getNextCampaignForDistrict(districtId, progress);
+    if (!campaign) {
+      return {
+        campaign: null,
+        locked: true,
+        lockReason: "Finish this front before replaying this district.",
+        startCount: defaultStart,
+        campaignMultiplier: 1.0,
+        restoredChurchPowerupLevels: {},
+      };
+    }
     let startCount;
     if (campaign === "p1") {
       startCount = defaultStart;
@@ -3707,15 +3823,10 @@
     }
     const mapData = window.BattlechurchMapData;
     if (mapData) {
-      const visibleDistrictId = MAP_SHOW_ONLY_NEXT_DISTRICT ? getNextVisibleDistrictId() : null;
-      const progress = ensureProgress();
+      const visibleDistrictIds = MAP_SHOW_ONLY_NEXT_DISTRICT ? getVisibleDistrictIdsForCurrentFrontline() : null;
       mapData.districts.forEach((district) => {
         if (MAP_SHOW_ONLY_NEXT_DISTRICT) {
-          const isCapital = district?.type === "capital";
-          const isNextDistrict = district?.id === visibleDistrictId;
-          const isBeatenDistrict = !isCapital && progress?.districts?.[district?.id]?.p1?.completed === true;
-          // Keep all beaten towns visible so players can review progress, plus the next district target.
-          if (!isNextDistrict && !isBeatenDistrict) return;
+          if (!visibleDistrictIds?.has(district?.id)) return;
         }
         drawDistrictNode(
           ctx,
@@ -3736,6 +3847,7 @@
     drawArmyMarchOverlay(ctx);
     if (!transitionActive) {
       handleMapClicks(rect);
+      drawMapSelectDistrictButton(ctx, canvas);
       drawDistrictPanel(ctx, canvas);
       drawDenomUpgradeOverlay(ctx, canvas);
     }
