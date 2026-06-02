@@ -255,6 +255,7 @@
       routeStops: [],
       previewClockMs: 0,
       previewPhase: 0,
+      mapPastorPaperdollState: { key: "", frameCursor: 0, elapsedMs: 0 },
     },
     mapLaunchTransition: {
       active: false,
@@ -4277,9 +4278,25 @@
       dtSec = Math.max(0, (nowMs - march.previewClockMs) / 1000);
     }
     march.previewClockMs = nowMs;
-    const duration = Math.max(0.001, Number(march.dashDuration) || 1.4);
-    const phase = (Number(march.previewPhase) || 0) + (dtSec / duration);
+    const travelDuration = Math.max(0.001, Number(march.dashDuration) || 1.4);
+    const holdDuration = 3;
+    const cycleDuration = travelDuration + holdDuration;
+    const phase = (Number(march.previewPhase) || 0) + (dtSec / cycleDuration);
     march.previewPhase = phase % 1;
+
+    // Only animate walk frames while the pastor is actually moving.
+    const cycleElapsed = march.previewPhase * cycleDuration;
+    const isMoving = cycleElapsed < travelDuration;
+    const pd = march.mapPastorPaperdollState;
+    if (pd && isMoving) {
+      const walkTimingMs = [135, 135, 135, 135, 135, 135];
+      const frameCount = walkTimingMs.length;
+      pd.elapsedMs += dtSec * 1000;
+      while (pd.elapsedMs >= walkTimingMs[pd.frameCursor % frameCount]) {
+        pd.elapsedMs -= walkTimingMs[pd.frameCursor % frameCount];
+        pd.frameCursor = (pd.frameCursor + 1) % frameCount;
+      }
+    }
   }
 
   function getPreviewMarchLeg(rect) {
@@ -4406,7 +4423,11 @@
     const lineLen = Math.hypot(dx, dy) || 1;
     const nx = dx / lineLen;
     const ny = dy / lineLen;
-    const marchProgress = Math.max(0, Math.min(1, Number(march.previewPhase) || 0));
+    const travelDuration = Math.max(0.001, Number(march.dashDuration) || 1.4);
+    const holdDuration = 3;
+    const cycleDuration = travelDuration + holdDuration;
+    const cycleElapsed = (Number(march.previewPhase) || 0) * cycleDuration;
+    const marchProgress = Math.max(0, Math.min(1, cycleElapsed / travelDuration));
     const pulse = 0.55 + 0.45 * Math.sin((typeof performance !== "undefined" ? performance.now() : Date.now()) * 0.012);
     ctx.save();
     ctx.lineCap = "butt";
@@ -4444,6 +4465,57 @@
     ctx.lineTo(fromX - oxSize, fromY + oxSize);
     ctx.stroke();
     ctx.restore();
+
+    // Draw the pastor paperdoll at the leading edge of the dashed line.
+    const drawPastorPaperdoll = window.Entities?.drawPastorPaperdoll;
+    if (typeof drawPastorPaperdoll === "function" && marchProgress > 0) {
+      const pastorX = fromX + dx * marchProgress;
+      const pastorY = fromY + dy * marchProgress;
+      // Map movement direction to paperdoll facing.
+      const absDx = Math.abs(dx);
+      const absDy = Math.abs(dy);
+      let facing;
+      if (absDx >= absDy) {
+        facing = dx >= 0 ? "right" : "left";
+      } else {
+        facing = dy >= 0 ? "down" : "up";
+      }
+      const pd = march.mapPastorPaperdollState || { key: "", frameCursor: 0, elapsedMs: 0 };
+      const fakePlayer = {
+        state: "walk",
+        facing,
+        _paperdollState: pd,
+        _paperdollAttackFacing: null,
+        _paperdollLastMoveFacing: null,
+      };
+      // Scale down from in-game size (64*3=192px) to a map-appropriate ~48px.
+      const mapScale = Math.max(0.1, (rect.w || 1280) / 1280) * (144 / 192);
+      // Force the walk preset: pickDesiredPresetName always falls back to "SlashDown",
+      // so we remap every preset name to "walk" via animationPresetMap and keep only
+      // the walk preset in the list so resolvePastorPaperdollPreset can only find it.
+      const pastorCfg = window.BATTLECHURCH_PASTOR_PAPERDOLL;
+      const walkPreset = pastorCfg && Array.isArray(pastorCfg.presets)
+        ? pastorCfg.presets.find((p) => String(p?.name || "").toLowerCase() === "walk")
+        : null;
+      const prevPresets = pastorCfg ? pastorCfg.presets : undefined;
+      const prevPresetMap = pastorCfg ? pastorCfg.animationPresetMap : undefined;
+      if (pastorCfg && walkPreset) {
+        pastorCfg.presets = [walkPreset];
+        pastorCfg.animationPresetMap = {
+          SlashDown: "walk", slashdown: "walk", idle: "walk", run: "walk",
+          fallback: "walk", thrust: "walk", death: "walk",
+        };
+      }
+      ctx.save();
+      ctx.translate(pastorX, pastorY);
+      ctx.scale(mapScale, mapScale);
+      drawPastorPaperdoll(fakePlayer, ctx, 0, 0, { alpha: 1 });
+      ctx.restore();
+      if (pastorCfg) {
+        if (prevPresets !== undefined) pastorCfg.presets = prevPresets;
+        if (prevPresetMap !== undefined) pastorCfg.animationPresetMap = prevPresetMap;
+      }
+    }
   }
 
   function getInitialMarchOrigin(rect) {
